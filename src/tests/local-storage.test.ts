@@ -1,7 +1,16 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+// Mock env so importing LocalStorage (which transitively imports env)
+// doesn't trip the DATABASE_URL/ENCRYPTION_KEY runtime checks in the CI environment
+vi.mock("../lib/env", () => ({
+    env: {
+        LOCAL_STORAGE_PATH: "/tmp/mock-storage",
+    },
+}));
+
 import { LocalStorage } from "../lib/storage/local-storage";
 
 describe("LocalStorage", () => {
