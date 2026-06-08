@@ -2,7 +2,7 @@
 
 import { ArrowRight, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useDismissibleBanner } from "@/hooks/use-dismissible-banner";
 
 const STORAGE_KEY = "mesynx-ai:rebrand:in-app-banner";
 const EXPIRES_AT = new Date("2026-07-28T00:00:00Z");
@@ -26,18 +26,7 @@ const EXPIRES_AT = new Date("2026-07-28T00:00:00Z");
  * see this surface (layout-level gate).
  */
 export function RebrandBanner() {
-    const [dismissed, setDismissed] = useState(false);
-
-    useEffect(() => {
-        try {
-            if (localStorage.getItem(STORAGE_KEY) === "dismissed") {
-                setDismissed(true);
-            }
-        } catch {
-            // localStorage can throw in privacy/incognito modes -- treat
-            // as "not dismissed" and render the banner. Functional fallback.
-        }
-    }, []);
+    const [dismissed, dismiss] = useDismissibleBanner(STORAGE_KEY);
 
     if (Date.now() > EXPIRES_AT.getTime()) return null;
     if (dismissed) return null;
@@ -62,15 +51,7 @@ export function RebrandBanner() {
             </div>
             <button
                 type="button"
-                onClick={() => {
-                    setDismissed(true);
-                    try {
-                        localStorage.setItem(STORAGE_KEY, "dismissed");
-                    } catch {
-                        // Best-effort -- if storage is unavailable the
-                        // banner simply reappears next visit. Acceptable.
-                    }
-                }}
+                onClick={dismiss}
                 aria-label="Dismiss announcement"
                 className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-7 rounded text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
             >
