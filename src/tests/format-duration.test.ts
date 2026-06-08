@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatTimeLike } from "../lib/format-duration";
+import { formatDuration, formatTimeLike, formatDurationMs } from "../lib/format-duration";
 
 describe("formatDuration", () => {
     it("collapses non-finite / negative inputs", () => {
@@ -63,5 +63,24 @@ describe("formatTimeLike", () => {
     it("handles non-finite / negative current as zero", () => {
         expect(formatTimeLike(Number.NaN, 1500)).toBe("00:00");
         expect(formatTimeLike(-10, 3 * 3600)).toBe("0:00:00");
+    });
+});
+
+describe("formatDurationMs", () => {
+    it("collapses non-finite / negative inputs", () => {
+        expect(formatDurationMs(Number.NaN)).toBe("0:00");
+        expect(formatDurationMs(-5000)).toBe("0:00");
+    });
+
+    it("uses M:SS under an hour", () => {
+        expect(formatDurationMs(0)).toBe("0:00");
+        expect(formatDurationMs(42000)).toBe("0:42");
+        expect(formatDurationMs(323000)).toBe("5:23");
+    });
+
+    it("switches to H:MM:SS at the hour boundary", () => {
+        expect(formatDurationMs(3599000)).toBe("59:59");
+        expect(formatDurationMs(3600000)).toBe("1:00:00");
+        expect(formatDurationMs(3923000)).toBe("1:05:23");
     });
 });
