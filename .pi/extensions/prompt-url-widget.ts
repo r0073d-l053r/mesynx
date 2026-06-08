@@ -31,11 +31,21 @@ function extractPromptMatch(prompt: string): PromptMatch | undefined {
 	return undefined;
 }
 
+
+function isSafeGhArg(arg: string): boolean {
+	if (arg.startsWith("-")) return false;
+	return /^[a-zA-Z0-9\-_./:#]+$/.test(arg);
+}
+
 async function fetchGhMetadata(
 	pi: ExtensionAPI,
 	kind: PromptMatch["kind"],
 	url: string,
 ): Promise<GhMetadata | undefined> {
+	if (!isSafeGhArg(url)) {
+		return undefined;
+	}
+
 	const args =
 		kind === "pr" ? ["pr", "view", url, "--json", "title,author"] : ["issue", "view", url, "--json", "title,author"];
 
