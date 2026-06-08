@@ -97,7 +97,9 @@ async function backfillRecordingFilenames(): Promise<TableStats> {
         const base = db
             .select({ id: recordings.id, filename: recordings.filename })
             .from(recordings);
-        const filtered = afterId ? base.where(gt(recordings.id, afterId)) : base;
+        const filtered = afterId
+            ? base.where(gt(recordings.id, afterId))
+            : base;
         return filtered.orderBy(asc(recordings.id)).limit(BATCH_SIZE);
     };
 

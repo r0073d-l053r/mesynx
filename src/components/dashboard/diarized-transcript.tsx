@@ -85,7 +85,7 @@ export function DiarizedTranscript({ text, className }: Props) {
 
                     return (
                         <div
-                            key={`${seg.speaker}-${i}`}
+                            key={`${seg.speaker}-${i.toString()}`}
                             className={cn(
                                 "flex gap-3",
                                 isNewSpeaker && i > 0 && "mt-3",
