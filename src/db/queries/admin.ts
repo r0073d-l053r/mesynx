@@ -420,7 +420,7 @@ export async function listUsers(opts: {
     })();
 
     const whereClause = search
-        ? sql`where u.email ilike ${`%${search}%`} escape '\\'`
+        ? sql`where u.email ilike '%' || ${search} || '%'`
         : sql``;
 
     const result = await db.execute<{

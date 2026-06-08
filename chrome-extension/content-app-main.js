@@ -22,7 +22,7 @@
 
       connect() {
         return new Promise((resolve, reject) => {
-          const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          const id = crypto.randomUUID();
           const TIMEOUT_MS = 120_000;
 
           let timer = null;

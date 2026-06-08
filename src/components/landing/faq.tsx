@@ -181,7 +181,10 @@ export function FAQ() {
                 type="application/ld+json"
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD payload.
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(faqJsonLd()),
+                    __html: JSON.stringify(faqJsonLd()).replace(
+                        /</g,
+                        "\\u003c",
+                    ),
                 }}
             />
 
