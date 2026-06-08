@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, use, useRef, useState } from "react";
+import { createContext, use, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 
 interface ConfirmOptions {
     title: string;
-    description?: ReactNode;
+    description?: React.ReactNode;
     /** Default: "Confirm" */
     confirmLabel?: string;
     /** Default: "Cancel" */
@@ -80,7 +80,11 @@ interface ActiveConfirm extends ConfirmOptions {
     resolve: (value: boolean) => void;
 }
 
-export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
+export function ConfirmDialogProvider({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const [active, setActive] = useState<ActiveConfirm | null>(null);
     const [isRunning, setIsRunning] = useState(false);
     // Ref guard so the imperative `confirm()` can reject re-entrancy
