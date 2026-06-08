@@ -113,4 +113,4 @@ function BottomSheetSeparator() {
     return <div className="mx-5 my-1 h-px bg-border/50" />;
 }
 
-export { BottomSheetAction, BottomSheetContent, BottomSheetSeparator };
+export { BottomSheetContent, BottomSheetAction, BottomSheetSeparator };
