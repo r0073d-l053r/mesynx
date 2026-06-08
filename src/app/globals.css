@@ -98,8 +98,8 @@
     --shadow-lg:
         0 8px 16px -4px oklch(0 0 0 / 0.12), 0 4px 6px -4px oklch(0 0 0 / 0.06);
     --shadow-xl:
-        0 16px 24px -6px oklch(0 0 0 / 0.14), 0 6px 10px -4px
-        oklch(0 0 0 / 0.08);
+        0 16px 24px -6px oklch(0 0 0 / 0.14),
+        0 6px 10px -4px oklch(0 0 0 / 0.08);
     --shadow-2xl: 0 24px 40px -8px oklch(0 0 0 / 0.18);
 
     /* Semantic surface aliases */
