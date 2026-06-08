@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatDateTime, dateGroupLabel } from "../lib/format-date";
+import { dateGroupLabel, formatDateTime } from "../lib/format-date";
 
 describe("formatDateTime", () => {
     beforeEach(() => {
@@ -18,7 +18,9 @@ describe("formatDateTime", () => {
     });
 
     it("formats string with relative format", () => {
-        expect(formatDateTime("2024-01-15T11:00:00Z", "relative")).toBe("about 1 hour ago");
+        expect(formatDateTime("2024-01-15T11:00:00Z", "relative")).toBe(
+            "about 1 hour ago",
+        );
     });
 
     it("formats Date object with absolute format", () => {
@@ -30,11 +32,15 @@ describe("formatDateTime", () => {
         // We will mock timezone to UTC by setting process.env.TZ = 'UTC' if needed,
         // or just accept local time output and test for structure.
         // For simplicity, we'll test the structure
-        expect(formatDateTime(date, "absolute")).toMatch(/Jan 15, 2024 \d{1,2}:\d{2} [AP]M/);
+        expect(formatDateTime(date, "absolute")).toMatch(
+            /Jan 15, 2024 \d{1,2}:\d{2} [AP]M/,
+        );
     });
 
     it("formats string with absolute format", () => {
-        expect(formatDateTime("2024-01-15T12:30:00Z", "absolute")).toMatch(/Jan 15, 2024 \d{1,2}:\d{2} [AP]M/);
+        expect(formatDateTime("2024-01-15T12:30:00Z", "absolute")).toMatch(
+            /Jan 15, 2024 \d{1,2}:\d{2} [AP]M/,
+        );
     });
 
     it("formats Date object with iso format", () => {
@@ -43,7 +49,9 @@ describe("formatDateTime", () => {
     });
 
     it("formats string with iso format", () => {
-        expect(formatDateTime("2024-01-15T12:30:00.000Z", "iso")).toBe("2024-01-15T12:30:00.000Z");
+        expect(formatDateTime("2024-01-15T12:30:00.000Z", "iso")).toBe(
+            "2024-01-15T12:30:00.000Z",
+        );
     });
 
     it("falls back to relative for unknown format type", () => {

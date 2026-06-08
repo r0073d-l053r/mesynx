@@ -85,6 +85,7 @@ export function DiarizedTranscript({ text, className }: Props) {
 
                     return (
                         <div
+                            // biome-ignore lint/suspicious/noArrayIndexKey: segments don't have unique IDs
                             key={`${seg.speaker}-${i}`}
                             className={cn(
                                 "flex gap-3",
