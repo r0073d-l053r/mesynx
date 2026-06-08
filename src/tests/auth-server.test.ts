@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/lib/auth";
 import { ErrorCode } from "@/lib/errors";
 
@@ -46,9 +46,9 @@ vi.mock("@/lib/auth", () => ({
 
 import {
     getSession,
-    requireAuth,
     redirectIfAuthenticated,
     requireApiSession,
+    requireAuth,
 } from "@/lib/auth-server";
 
 describe("auth-server", () => {
@@ -61,7 +61,9 @@ describe("auth-server", () => {
             const mockHeaders = new Headers();
             vi.mocked(headers).mockResolvedValue(mockHeaders as any);
             const mockSession = { user: { id: "1" } };
-            vi.mocked(auth.api.getSession).mockResolvedValue(mockSession as any);
+            vi.mocked(auth.api.getSession).mockResolvedValue(
+                mockSession as any,
+            );
 
             const result = await getSession();
 
@@ -98,7 +100,9 @@ describe("auth-server", () => {
         it("returns session if authenticated and not suspended", async () => {
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
             const mockSession = { user: { id: "1" } };
-            vi.mocked(auth.api.getSession).mockResolvedValue(mockSession as any);
+            vi.mocked(auth.api.getSession).mockResolvedValue(
+                mockSession as any,
+            );
             mockLimit.mockResolvedValue([{}]);
 
             const result = await requireAuth();
@@ -115,7 +119,9 @@ describe("auth-server", () => {
                 user: { id: "1" },
             } as any);
 
-            await expect(redirectIfAuthenticated()).rejects.toThrow("NEXT_REDIRECT");
+            await expect(redirectIfAuthenticated()).rejects.toThrow(
+                "NEXT_REDIRECT",
+            );
 
             expect(redirect).toHaveBeenCalledWith("/dashboard");
         });
@@ -156,7 +162,9 @@ describe("auth-server", () => {
 
         it("returns session if authenticated and not suspended", async () => {
             const mockSession = { user: { id: "1" } };
-            vi.mocked(auth.api.getSession).mockResolvedValue(mockSession as any);
+            vi.mocked(auth.api.getSession).mockResolvedValue(
+                mockSession as any,
+            );
             mockLimit.mockResolvedValue([{}]);
             const request = new Request("http://localhost");
 
