@@ -1,60 +1,69 @@
 {
-    "manifest_version": 3,
-    "name": "Mesynx AI Connector",
-    "version": "1.0.0",
-    "description": "One-click Plaud sign-in for Mesynx AI — works with Google and Apple SSO accounts.",
+  "manifest_version": 3,
+  "name": "Mesynx AI Connector",
+  "version": "1.0.0",
+  "description": "One-click Plaud sign-in for Mesynx AI — works with Google and Apple SSO accounts.",
 
-    "action": {
-        "default_popup": "popup/popup.html",
-        "default_title": "Mesynx AI Connector",
-        "default_icon": {
-            "16": "icons/icon16.png",
-            "32": "icons/icon32.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-        }
-    },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Mesynx AI Connector",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
 
-    "icons": {
-        "16": "icons/icon16.png",
-        "32": "icons/icon32.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-    },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
 
-    "background": {
-        "service_worker": "background.js"
-    },
+  "background": {
+    "service_worker": "background.js"
+  },
 
-    "content_scripts": [
-        {
-            "matches": [
-                "http://localhost:8790/*",
-                "https://mesynx.r0073dl053r.com/*"
-            ],
-            "js": ["content-app-main.js"],
-            "run_at": "document_idle",
-            "world": "MAIN"
-        },
-        {
-            "matches": [
-                "http://localhost:8790/*",
-                "https://mesynx.r0073dl053r.com/*"
-            ],
-            "js": ["content-app-isolated.js"],
-            "run_at": "document_idle",
-            "world": "ISOLATED"
-        }
-    ],
-
-    "permissions": ["cookies", "tabs", "storage", "windows", "scripting"],
-
-    "optional_host_permissions": ["http://*/*", "https://*/*"],
-
-    "host_permissions": [
-        "https://web.plaud.ai/*",
-        "https://*.plaud.ai/*",
+  "content_scripts": [
+    {
+      "matches": [
         "http://localhost:8790/*",
         "https://mesynx.r0073dl053r.com/*"
-    ]
+      ],
+      "js": ["content-app-main.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "http://localhost:8790/*",
+        "https://mesynx.r0073dl053r.com/*"
+      ],
+      "js": ["content-app-isolated.js"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ],
+
+  "permissions": [
+    "cookies",
+    "tabs",
+    "storage",
+    "windows",
+    "scripting"
+  ],
+
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+
+  "host_permissions": [
+    "https://web.plaud.ai/*",
+    "https://*.plaud.ai/*",
+    "http://localhost:8790/*",
+    "https://mesynx.r0073dl053r.com/*"
+  ]
 }
