@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface ToggleSwitchProps {
@@ -19,8 +20,9 @@ export function ToggleSwitch({
     disabled = false,
     className,
 }: ToggleSwitchProps) {
-    const switchId = `toggle-${Math.random().toString(36).substring(2, 9)}`;
-    const labelId = `toggle-label-${Math.random().toString(36).substring(2, 9)}`;
+    const baseId = useId();
+    const switchId = `toggle-${baseId}`;
+    const labelId = `toggle-label-${baseId}`;
 
     const handleClick = () => {
         if (!disabled && onChange) {
