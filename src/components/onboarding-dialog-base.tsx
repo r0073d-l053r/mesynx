@@ -120,10 +120,10 @@ function OnboardingDialogDescription({
 }
 
 export {
-    OnboardingDialogRoot as Dialog,
     OnboardingDialogContent as DialogContent,
     OnboardingDialogDescription as DialogDescription,
     OnboardingDialogFooter as DialogFooter,
     OnboardingDialogHeader as DialogHeader,
+    OnboardingDialogRoot as Dialog,
     OnboardingDialogTitle as DialogTitle,
 };

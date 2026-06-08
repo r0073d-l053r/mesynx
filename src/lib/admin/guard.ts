@@ -118,7 +118,7 @@ export async function requireAdminApi(
     opts: Omit<AssertOptions, "mutation">,
 ): Promise<AdminGuardOk> {
     const res = await evaluateAdminGate({ ...opts, mutation: false });
-    if (!res || res.mode !== "ok") {
+    if (res?.mode !== "ok") {
         throw new AppError(ErrorCode.NOT_FOUND, "Not found", 404);
     }
     return res;
@@ -128,7 +128,7 @@ export async function requireAdminMutation(
     opts: Omit<AssertOptions, "mutation">,
 ): Promise<AdminGuardOk> {
     const res = await evaluateAdminGate({ ...opts, mutation: true });
-    if (!res || res.mode !== "ok") {
+    if (res?.mode !== "ok") {
         throw new AppError(ErrorCode.NOT_FOUND, "Not found", 404);
     }
     return res;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatTimeLike, formatDurationMs } from "../lib/format-duration";
+import {
+    formatDuration,
+    formatDurationMs,
+    formatTimeLike,
+} from "../lib/format-duration";
 
 describe("formatDuration", () => {
     it("collapses non-finite / negative inputs", () => {
