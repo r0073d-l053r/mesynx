@@ -118,7 +118,7 @@ export {
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
-    SidebarMenuItem,
     SidebarMenuButton,
+    SidebarMenuItem,
     SidebarProvider,
 };

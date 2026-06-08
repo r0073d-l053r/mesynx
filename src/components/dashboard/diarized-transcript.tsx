@@ -85,6 +85,7 @@ export function DiarizedTranscript({ text, className }: Props) {
 
                     return (
                         <div
+                            // biome-ignore lint/suspicious/noArrayIndexKey: transcripts order is stable
                             key={`${seg.speaker}-${i}`}
                             className={cn(
                                 "flex gap-3",

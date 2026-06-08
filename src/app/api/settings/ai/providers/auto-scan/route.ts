@@ -34,9 +34,13 @@ async function discoverTailscaleHosts(): Promise<string[]> {
     }
 
     try {
-        const { stdout } = await execFileAsync("tailscale", ["status", "--json"], {
-            timeout: 3000,
-        });
+        const { stdout } = await execFileAsync(
+            "tailscale",
+            ["status", "--json"],
+            {
+                timeout: 3000,
+            },
+        );
         const hosts = parseTailscaleHosts(stdout);
         if (hosts.length > 0) {
             tailscaleHostsCache = hosts;
