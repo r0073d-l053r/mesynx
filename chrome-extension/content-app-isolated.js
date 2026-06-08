@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type !== 'DELIVER_TOKEN') return false;
 
   const { payload } = message;
-  const id = `deliver-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const id = `deliver-${crypto.randomUUID()}`;
 
   // Listen for the result from the MAIN world after it POSTs to the API.
   function handler(event) {
