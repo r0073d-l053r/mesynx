@@ -11,7 +11,6 @@ const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
 
 vi.mock("@/db", () => ({
     db: {
-        // biome-ignore lint/suspicious/noExplicitAny: mock
         select: vi.fn((...args: any[]) => mockSelect(...args)),
     },
 }));
@@ -60,11 +59,9 @@ describe("auth-server", () => {
     describe("getSession", () => {
         it("returns session from auth.api.getSession using headers()", async () => {
             const mockHeaders = new Headers();
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(mockHeaders as any);
             const mockSession = { user: { id: "1" } };
             vi.mocked(auth.api.getSession).mockResolvedValue(
-                // biome-ignore lint/suspicious/noExplicitAny: mock
                 mockSession as any,
             );
 
@@ -80,9 +77,7 @@ describe("auth-server", () => {
 
     describe("requireAuth", () => {
         it("redirects to /login if no session exists", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(auth.api.getSession).mockResolvedValue(null as any);
 
             await expect(requireAuth()).rejects.toThrow("NEXT_REDIRECT");
@@ -91,11 +86,9 @@ describe("auth-server", () => {
         });
 
         it("redirects to /suspended if user is suspended", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
             vi.mocked(auth.api.getSession).mockResolvedValue({
                 user: { id: "1" },
-                // biome-ignore lint/suspicious/noExplicitAny: mock
             } as any);
             mockLimit.mockResolvedValue([{ suspendedAt: new Date() }]);
 
@@ -105,11 +98,9 @@ describe("auth-server", () => {
         });
 
         it("returns session if authenticated and not suspended", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
             const mockSession = { user: { id: "1" } };
             vi.mocked(auth.api.getSession).mockResolvedValue(
-                // biome-ignore lint/suspicious/noExplicitAny: mock
                 mockSession as any,
             );
             mockLimit.mockResolvedValue([{}]);
@@ -123,11 +114,9 @@ describe("auth-server", () => {
 
     describe("redirectIfAuthenticated", () => {
         it("redirects to /dashboard if session exists", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
             vi.mocked(auth.api.getSession).mockResolvedValue({
                 user: { id: "1" },
-                // biome-ignore lint/suspicious/noExplicitAny: mock
             } as any);
 
             await expect(redirectIfAuthenticated()).rejects.toThrow(
@@ -138,9 +127,7 @@ describe("auth-server", () => {
         });
 
         it("does not redirect if no session exists", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(headers).mockResolvedValue(new Headers() as any);
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(auth.api.getSession).mockResolvedValue(null as any);
 
             await redirectIfAuthenticated();
@@ -151,7 +138,6 @@ describe("auth-server", () => {
 
     describe("requireApiSession", () => {
         it("throws 401 if no session exists", async () => {
-            // biome-ignore lint/suspicious/noExplicitAny: mock
             vi.mocked(auth.api.getSession).mockResolvedValue(null as any);
             const request = new Request("http://localhost");
 
@@ -164,7 +150,6 @@ describe("auth-server", () => {
         it("throws 403 if user is suspended", async () => {
             vi.mocked(auth.api.getSession).mockResolvedValue({
                 user: { id: "1" },
-                // biome-ignore lint/suspicious/noExplicitAny: mock
             } as any);
             mockLimit.mockResolvedValue([{ suspendedAt: new Date() }]);
             const request = new Request("http://localhost");
@@ -178,7 +163,6 @@ describe("auth-server", () => {
         it("returns session if authenticated and not suspended", async () => {
             const mockSession = { user: { id: "1" } };
             vi.mocked(auth.api.getSession).mockResolvedValue(
-                // biome-ignore lint/suspicious/noExplicitAny: mock
                 mockSession as any,
             );
             mockLimit.mockResolvedValue([{}]);

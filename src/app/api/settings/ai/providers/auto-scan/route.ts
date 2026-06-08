@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -14,7 +14,7 @@ import { encrypt } from "@/lib/encryption";
 import { env } from "@/lib/env";
 import { apiHandler } from "@/lib/errors";
 
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 // --- Tailscale peer discovery (subprocess + short cache) -------------------
 // Cached briefly so repeated scans don't re-shell `tailscale status` every
@@ -34,13 +34,9 @@ async function discoverTailscaleHosts(): Promise<string[]> {
     }
 
     try {
-        const { stdout } = await execFileAsync(
-            "tailscale",
-            ["status", "--json"],
-            {
-                timeout: 3000,
-            },
-        );
+        const { stdout } = await execAsync("tailscale status --json", {
+            timeout: 3000,
+        });
         const hosts = parseTailscaleHosts(stdout);
         if (hosts.length > 0) {
             tailscaleHostsCache = hosts;
