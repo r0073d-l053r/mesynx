@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatTimeLike } from "../lib/format-duration";
+import {
+    formatDuration,
+    formatDurationMs,
+    formatHoursCompact,
+    formatTimeLike,
+} from "../lib/format-duration";
 
 describe("formatDuration", () => {
     it("collapses non-finite / negative inputs", () => {
@@ -63,5 +68,46 @@ describe("formatTimeLike", () => {
     it("handles non-finite / negative current as zero", () => {
         expect(formatTimeLike(Number.NaN, 1500)).toBe("00:00");
         expect(formatTimeLike(-10, 3 * 3600)).toBe("0:00:00");
+    });
+});
+
+describe("formatDurationMs", () => {
+    it("collapses non-finite / negative inputs", () => {
+        expect(formatDurationMs(Number.NaN)).toBe("0:00");
+        expect(formatDurationMs(-5000)).toBe("0:00");
+    });
+
+    it("converts ms to seconds and formats correctly", () => {
+        expect(formatDurationMs(0)).toBe("0:00");
+        expect(formatDurationMs(42000)).toBe("0:42");
+        expect(formatDurationMs(323000)).toBe("5:23");
+        expect(formatDurationMs(3600000)).toBe("1:00:00");
+    });
+});
+
+describe("formatHoursCompact", () => {
+    it("handles non-finite, zero, and negative inputs", () => {
+        expect(formatHoursCompact(Number.NaN)).toBe("0 min");
+        expect(formatHoursCompact(0)).toBe("0 min");
+        expect(formatHoursCompact(-1000)).toBe("0 min");
+    });
+
+    it("formats minutes under an hour", () => {
+        expect(formatHoursCompact(30 * 60_000)).toBe("30 min");
+        expect(formatHoursCompact(59.4 * 60_000)).toBe("59 min");
+        expect(formatHoursCompact(59.6 * 60_000)).toBe("60 min");
+    });
+
+    it("formats with one decimal place for 1 to 10 hours", () => {
+        expect(formatHoursCompact(60 * 60_000)).toBe("1.0 h");
+        expect(formatHoursCompact(90 * 60_000)).toBe("1.5 h");
+        expect(formatHoursCompact(9.9 * 60 * 60_000)).toBe("9.9 h");
+    });
+
+    it("formats with no decimal places for 10 hours and above", () => {
+        expect(formatHoursCompact(10 * 60 * 60_000)).toBe("10 h");
+        expect(formatHoursCompact(10.4 * 60 * 60_000)).toBe("10 h");
+        expect(formatHoursCompact(10.6 * 60 * 60_000)).toBe("11 h");
+        expect(formatHoursCompact(100 * 60 * 60_000)).toBe("100 h");
     });
 });
