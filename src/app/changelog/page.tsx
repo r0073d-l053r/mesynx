@@ -242,13 +242,11 @@ function BodyText({ text }: { text: string }) {
                 i % 2 === 1 ? (
                     <KbdChip
                         // Backtick parts are short and content-stable; index key is fine.
-                        // biome-ignore lint/suspicious/noArrayIndexKey: short stable list, ordering does not change between renders
                         key={i}
                     >
                         {part}
                     </KbdChip>
                 ) : (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: short stable list, ordering does not change between renders
                     <span key={i}>{part}</span>
                 ),
             )}

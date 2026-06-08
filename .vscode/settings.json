@@ -1,21 +1,21 @@
 {
-  "tailwindCSS.experimental.configFile": "src/app/globals.css",
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports.biome": "explicit",
-    "source.fixAll.biome": "explicit"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.preferences.includePackageJsonAutoImports": "auto",
-  "biome.enabled": true,
-  "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome",
+    "tailwindCSS.experimental.configFile": "src/app/globals.css",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports.biome": "explicit",
+        "source.fixAll.biome": "explicit"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "biome.enabled": true,
+    "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome"
 }

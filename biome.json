@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
     "vcs": {
         "enabled": true,
         "clientKind": "git",
@@ -7,40 +7,39 @@
     },
     "files": {
         "ignoreUnknown": true,
-        "includes": [
-            "src/**/*.{js,jsx,ts,tsx,json,css}",
-            "*.{js,jsx,ts,tsx,json}",
-            "!src/db/migrations",
-            "!src/.source"
-        ]
+        "includes": ["**", "!**/src/.source", "!**/.next"]
     },
     "formatter": {
         "enabled": true,
         "indentStyle": "space",
         "indentWidth": 4
     },
+    "assist": { "actions": { "source": { "organizeImports": "on" } } },
     "linter": {
         "enabled": true,
         "rules": {
             "recommended": true,
+            "correctness": {
+                "noUnusedVariables": "error",
+                "noUnusedImports": "error"
+            },
             "suspicious": {
-                "noUnknownAtRules": "off"
+                "noExplicitAny": "warn",
+                "noArrayIndexKey": "off"
+            },
+            "complexity": {
+                "useOptionalChain": "off"
             }
-        },
-        "domains": {
-            "next": "recommended",
-            "react": "recommended"
         }
     },
-    "assist": {
-        "actions": {
-            "source": {
-                "organizeImports": "on"
-            }
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double"
         }
     },
     "css": {
         "parser": {
+            "cssModules": true,
             "tailwindDirectives": true
         }
     }
