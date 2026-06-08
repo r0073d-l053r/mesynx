@@ -58,8 +58,6 @@ interface EditProviderDialogProps {
     isHosted?: boolean;
 }
 
-
-
 function ProviderSelectSection({
     providerName,
     isLoading,
@@ -86,10 +84,7 @@ function ProviderSelectSection({
                 </SelectTrigger>
                 <SelectContent>
                     {visiblePresets.map((preset) => (
-                        <SelectItem
-                            key={preset.name}
-                            value={preset.name}
-                        >
+                        <SelectItem key={preset.name} value={preset.name}>
                             {preset.name}
                         </SelectItem>
                     ))}
@@ -297,7 +292,9 @@ function DefaultUsagePanel({
                 <input
                     type="checkbox"
                     checked={isDefaultTranscription}
-                    onChange={(e) => setIsDefaultTranscription(e.target.checked)}
+                    onChange={(e) =>
+                        setIsDefaultTranscription(e.target.checked)
+                    }
                     disabled={isLoading}
                 />
                 <span>Use for transcription</span>
@@ -505,7 +502,6 @@ export function EditProviderDialog({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-
                     <ProviderSelectSection
                         providerName={providerName}
                         isLoading={isLoading}
