@@ -29,8 +29,7 @@
   "content_scripts": [
     {
       "matches": [
-        "http://localhost:8790/*",
-        "https://mesynx.r0073dl053r.com/*"
+        "http://localhost:8790/*"
       ],
       "js": ["content-app-main.js"],
       "run_at": "document_idle",
@@ -38,8 +37,7 @@
     },
     {
       "matches": [
-        "http://localhost:8790/*",
-        "https://mesynx.r0073dl053r.com/*"
+        "http://localhost:8790/*"
       ],
       "js": ["content-app-isolated.js"],
       "run_at": "document_idle",
@@ -63,7 +61,6 @@
   "host_permissions": [
     "https://web.plaud.ai/*",
     "https://*.plaud.ai/*",
-    "http://localhost:8790/*",
-    "https://mesynx.r0073dl053r.com/*"
+    "http://localhost:8790/*"
   ]
 }

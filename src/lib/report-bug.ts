@@ -3,7 +3,7 @@ import { APP_VERSION_TAG } from "@/lib/version";
 export const DISCORD_URL = "https://discord.gg/JygWxS2VA8";
 
 const GITHUB_NEW_ISSUE_URL =
-    "https://github.com/mesynx-ai/mesynx-ai/issues/new";
+    "https://github.com/r0073d-l053r/mesynx/issues/new";
 const BUG_REPORT_TEMPLATE = "bug_report.yml";
 
 export interface ReportBugOptions {
@@ -27,7 +27,7 @@ export function buildReportBugUrl(opts: ReportBugOptions): string {
     if (opts.isHosted !== undefined) {
         params.set(
             "deployment",
-            opts.isHosted ? "Hosted (mesynx.r0073dl053r.com)" : "Self-hosted",
+            opts.isHosted ? "Hosted" : "Self-hosted",
         );
     }
 
@@ -71,7 +71,7 @@ function buildAdditional(opts: ReportBugOptions): string {
     lines.push(`Version: ${APP_VERSION_TAG}`);
     if (opts.isHosted !== undefined) {
         lines.push(
-            `Mode: ${opts.isHosted ? "Hosted (mesynx.r0073dl053r.com)" : "Self-hosted"}`,
+            `Mode: ${opts.isHosted ? "Hosted" : "Self-hosted"}`,
         );
     }
     return lines.join("\n");

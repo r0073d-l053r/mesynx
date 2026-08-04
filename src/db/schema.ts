@@ -284,6 +284,23 @@ export const transcriptions = pgTable(
             .notNull()
             .references(() => users.id, { onDelete: "cascade" }),
         text: text("text").notNull(),
+        // Custom display names for diarized speakers, keyed by the raw
+        // speaker id in the transcript text, e.g. {"SPEAKER_00": "Alice"}.
+        // Null until the user renames someone. Stored as an encryptJsonField
+        // envelope (names of who spoke in a private recording are content,
+        // same standard as key_points/action_items). Transcription-scoped
+        // (not recording-scoped) because a re-transcription reshuffles ids —
+        // and the re-transcribe path clears it for the same reason.
+        speakerNames: jsonb("speaker_names"),
+        // User-arranged workspace: the flat SummaryNode[] behind the mind-map
+        // and document views (positions, labels, tags, transcript chunks).
+        // Null until the user edits the workspace, at which point the stored
+        // array replaces the derived-on-the-fly one. Encrypted envelope —
+        // it embeds transcript text and user prose. Deliberately NOT cleared
+        // on re-transcription (unlike speaker_names): node labels and
+        // summaries are user-authored and stay meaningful even when the
+        // underlying transcript changes.
+        workspaceNodes: jsonb("workspace_nodes"),
         detectedLanguage: varchar("detected_language", { length: 10 }), // ISO 639-1 language code detected by Whisper
         transcriptionType: varchar("transcription_type", { length: 10 })
             .notNull()

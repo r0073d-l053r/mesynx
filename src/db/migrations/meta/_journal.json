@@ -183,6 +183,20 @@
       "when": 1780760553113,
       "tag": "0025_light_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1785774600222,
+      "tag": "0026_speaker_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1785801658531,
+      "tag": "0027_workspace_nodes",
+      "breakpoints": true
     }
   ]
 }

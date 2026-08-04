@@ -9,7 +9,8 @@ import {
 } from "@/db/schema";
 import { isAdminEmail } from "@/lib/admin/guard";
 import { requireAuth } from "@/lib/auth-server";
-import { decryptText } from "@/lib/encryption/fields";
+import { decryptJsonField, decryptText } from "@/lib/encryption/fields";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { env } from "@/lib/env";
 import { initialSettingsFromRow } from "@/lib/settings/initial-settings";
 import { serializeRecording } from "@/types/recording";
@@ -42,6 +43,8 @@ export default async function DashboardPage() {
             recordingId: transcriptions.recordingId,
             text: transcriptions.text,
             language: transcriptions.detectedLanguage,
+            speakerNames: transcriptions.speakerNames,
+            workspaceNodes: transcriptions.workspaceNodes,
         })
         .from(transcriptions)
         .where(eq(transcriptions.userId, session.user.id));
@@ -94,7 +97,20 @@ export default async function DashboardPage() {
                 console.error("Failed to decrypt transcription text:", error);
                 text = "[Decryption Failed - Key Mismatch]";
             }
-            return [t.recordingId, { text, language: t.language || undefined }];
+            return [
+                t.recordingId,
+                {
+                    text,
+                    language: t.language || undefined,
+                    speakerNames:
+                        decryptJsonField<Record<string, string>>(
+                            t.speakerNames,
+                        ) ?? null,
+                    workspaceNodes:
+                        decryptJsonField<SummaryNode[]>(t.workspaceNodes) ??
+                        null,
+                },
+            ];
         }),
     );
 

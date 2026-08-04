@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const origin = new URL(val).origin;
-      if (origin && !origin.includes('localhost:8790') && !origin.includes('mesynx.r0073dl053r.com')) {
+      if (origin && !origin.includes('localhost:8790')) {
         chrome.permissions.request({ origins: [origin + '/*'] }, (granted) => {
           if (granted) {
             chrome.runtime.sendMessage({ type: 'REGISTER_DYNAMIC_SCRIPT', url: origin });
@@ -96,7 +96,7 @@ function renderNotConnected() {
 
   renderActions([
     { label: 'Sign in to web.plaud.ai', href: 'https://web.plaud.ai', primary: true },
-    { label: 'How to connect', href: 'https://mesynx.r0073dl053r.com/docs/guides/connect-plaud-account' },
+    { label: 'How to connect', href: 'https://mesynx.jewell-net.com/docs/guides/connect-plaud-account' },
   ]);
 }
 

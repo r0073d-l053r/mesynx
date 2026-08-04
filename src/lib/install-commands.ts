@@ -5,15 +5,15 @@
  * the install page is the canonical doc, the landing terminal is the
  * teaser, and they must show the exact same command.
  *
- * The URL itself is the deploy-surface contract -- it is served from
+ * The URL itself is the deploy-surface contract -- it is also served from
  * `src/app/install.sh/route.ts` and `src/app/[version]/install.sh/route.ts`.
  * Self-hosters paste these into their own runbooks; do not break the
  * URL shape silently. See AGENTS.md → "Don't break existing deployments".
  */
 
 export const INSTALL_ONELINER =
-    "curl -fsSL https://mesynx.r0073dl053r.com/install.sh | sh";
+    "curl -fsSL https://raw.githubusercontent.com/r0073d-l053r/mesynx/main/scripts/install.sh | sh";
 
 export function pinnedInstallCommand(versionTag: string): string {
-    return `curl -fsSL https://mesynx.r0073dl053r.com/${versionTag}/install.sh | sh`;
+    return `curl -fsSL https://raw.githubusercontent.com/r0073d-l053r/mesynx/${versionTag}/scripts/install.sh | sh`;
 }

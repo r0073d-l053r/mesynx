@@ -35,7 +35,7 @@ pulls.
 `main` is a **rolling integration branch** and may be broken at any
 commit. Stable deploys come from tagged releases. Do **not** deploy by
 cloning the repo and building from `main`; use the tagged images
-above. See [BRANCHING.md](https://github.com/mesynx-ai/mesynx-ai/blob/main/BRANCHING.md)
+above. See [BRANCHING.md](https://github.com/r0073d-l053r/mesynx/blob/main/BRANCHING.md)
 for the branching model.
 
 ## Update badge
@@ -47,6 +47,89 @@ does not auto-update anything.
 The check calls `api.github.com` once per session. If your instance
 shouldn't phone home at all, set `DISABLE_UPDATE_CHECK=true` in your
 `.env` and the badge disappears unconditionally.
+
+## Breaking change: the bundled `whisper` service is gone
+
+**Affects every install whose transcription provider points at
+`http://whisper:8000/v1`.** WhisperX supersedes the bundled
+[faster-whisper-server](https://github.com/fedirz/faster-whisper-server) —
+same transcription, plus forced alignment and speaker diarization — and the
+two competed for the same GPU, so the older service was removed from
+`docker-compose.yml`.
+
+Nothing warns you about this. The stack comes up healthy and the provider row
+still looks fine in Settings; transcription just fails the next time you use
+it, because the hostname no longer resolves.
+
+Check whether you're affected **before** upgrading:
+
+```bash
+docker compose exec db psql -U postgres -d mesynx-ai \
+  -c "SELECT id, nickname, base_url FROM api_credentials WHERE base_url LIKE '%whisper:%';"
+```
+
+Any row returned needs repointing. Do it in the UI — **Settings → AI Providers**
+— rather than by hand: `api_credentials.api_key` is decrypted with a
+non-plaintext-tolerant path, so a row written by raw SQL fails with
+`Could not decrypt the API key` and a 400 on every generate.
+
+Set the base URL to `http://whisperx:8000/v1` and the model to
+`large-v3-turbo-diarize`. The `-diarize` suffix is how the app requests
+diarization.
+
+### WhisperX needs two things the old service didn't
+
+1. **Accept the pyannote licence** at
+   [hf.co/pyannote/speaker-diarization-community-1](https://hf.co/pyannote/speaker-diarization-community-1),
+   then put a read-scope token in `.env` as `HF_TOKEN=hf_...`. The image builds
+   its diarization pipeline unconditionally at startup, so without a valid
+   token it fails with a gated-repo 401 and restarts forever. An entrypoint
+   guard now idles with a clear message instead of crash-looping, but it still
+   won't transcribe.
+2. **Materialise the model-alias patch**, once, before first start:
+
+   ```bash
+   ./patches/apply.sh
+   ```
+
+   Without it the server returns **404** for `large-v3-turbo-diarize`, because
+   the stock image rejects any model name that isn't exactly its configured
+   one. See [`patches/README.md`](https://github.com/r0073d-l053r/mesynx/blob/main/patches/README.md).
+
+### Reclaiming the old model cache
+
+The `whisper_cache` volume is deliberately left intact so an upgrade never
+destroys downloaded models. It holds several GB. Once the new stack is
+working:
+
+```bash
+docker volume ls | grep whisper_cache
+docker volume rm <project>_whisper_cache
+```
+
+## Upgrading past the speaker-names and workspace release
+
+Two migrations (`0026_speaker_names`, `0027_workspace_nodes`) add encrypted
+`jsonb` columns to `transcriptions`. Both are additive and run automatically
+at container start — no action needed.
+
+Two things are worth knowing afterwards:
+
+- **Summaries generated before this release have speaker names baked into the
+  prose**, so renaming a speaker will not update them — there is no
+  `SPEAKER_NN` token left to resolve. Regenerating an individual summary fixes
+  it. New summaries store raw ids and resolve names at render time, so renames
+  are retroactive from here on.
+- **A saved workspace always wins over a freshly derived one.** That preserves
+  your arrangement, but it also means a recording you've arranged once will not
+  pick up later improvements to the layout derivation. Use **Rebuild** in the
+  workspace header to discard the saved copy and re-derive.
+
+If you use a **reasoning model** for summaries, note that the summary and title
+token budgets were raised (8000 and 800, from 2000 and 50) because reasoning
+tokens bill against the same allowance and could consume it entirely before any
+content was produced. A response truncated at the cap is now a 502 naming the
+model, rather than a silently stored blank summary.
 
 ## Rolling back
 

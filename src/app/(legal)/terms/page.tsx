@@ -30,7 +30,7 @@ import {
 export const metadata: Metadata = {
     title: "Terms of Service — Mesynx AI",
     description:
-        "Terms governing your use of the hosted Mesynx AI service at mesynx.r0073dl053r.com.",
+        "Terms governing your use of the hosted Mesynx AI service.",
 };
 
 export default function TermsPage() {
@@ -41,8 +41,8 @@ export default function TermsPage() {
                 <em>Effective {EFFECTIVE_DATE_DISPLAY}.</em>
             </p>
             <p>
-                These terms govern your use of the hosted Mesynx AI service at
-                mesynx.r0073dl053r.com. By creating an account or using the
+                These terms govern your use of the hosted Mesynx AI service.
+                By creating an account or using the
                 service, you agree to them. If you self-host the project
                 instead, your relationship is with the AGPL-3.0 license that
                 governs the source code, not with these terms.
@@ -88,11 +88,11 @@ export default function TermsPage() {
                 The Mesynx AI source code is licensed under AGPL-3.0 and lives
                 at{" "}
                 <Link
-                    href="https://github.com/mesynx-ai/mesynx-ai"
+                    href="https://github.com/r0073d-l053r/mesynx"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
-                    github.com/mesynx-ai/mesynx-ai
+                    github.com/r0073d-l053r/mesynx
                 </Link>
                 . You are free to run, modify, and redistribute it under that
                 license. These terms apply only to the hosted instance we

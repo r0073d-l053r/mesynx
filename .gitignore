@@ -59,3 +59,9 @@ bun.lock
 
 # logs
 *.log
+
+# Materialised third-party sources for the whisperx bind-mount.
+# Only the unified diffs are tracked — see patches/README.md.
+patches/*.py
+docker-compose.yml.bak-*
+patches/*.orig

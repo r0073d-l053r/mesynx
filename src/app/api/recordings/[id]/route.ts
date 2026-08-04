@@ -8,7 +8,11 @@ import {
     webhookDeliveries,
 } from "@/db/schema";
 import { requireApiSession } from "@/lib/auth-server";
-import { decryptText, encryptText } from "@/lib/encryption/fields";
+import {
+    decryptJsonField,
+    decryptText,
+    encryptText,
+} from "@/lib/encryption/fields";
 import { AppError, apiHandler, ErrorCode } from "@/lib/errors";
 import { createUserStorageProvider } from "@/lib/storage/factory";
 import { emitEvent } from "@/lib/webhooks/emit";
@@ -84,7 +88,19 @@ export const GET = apiHandler<IdContext>(async (request, context) => {
         },
         transcription:
             transcription && transcriptionText !== undefined
-                ? { ...transcription, text: transcriptionText }
+                ? {
+                      ...transcription,
+                      text: transcriptionText,
+                      // Stored as encrypted envelopes; client gets plaintext.
+                      speakerNames:
+                          decryptJsonField<Record<string, string>>(
+                              transcription.speakerNames,
+                          ) ?? null,
+                      workspaceNodes:
+                          decryptJsonField<unknown[]>(
+                              transcription.workspaceNodes,
+                          ) ?? null,
+                  }
                 : null,
     });
 });

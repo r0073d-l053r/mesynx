@@ -128,12 +128,12 @@ export default function RebrandPage() {
                         <p className="text-muted-foreground leading-relaxed">
                             The repo moved to{" "}
                             <Link
-                                href="https://github.com/mesynx-ai/mesynx-ai"
+                                href="https://github.com/r0073d-l053r/mesynx"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-foreground underline decoration-dotted underline-offset-2 hover:text-foreground/80"
                             >
-                                github.com/mesynx-ai/mesynx-ai
+                                github.com/r0073d-l053r/mesynx
                             </Link>
                             ; GitHub redirects the old URL automatically. No env
                             vars renamed, no Docker images renamed, no migration
@@ -169,7 +169,7 @@ export default function RebrandPage() {
                             className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <ArrowLeft className="size-3.5" aria-hidden />
-                            Back to mesynx.r0073dl053r.com
+                            Back to Mesynx AI
                         </Link>
                     </p>
                 </article>

@@ -354,7 +354,7 @@ async function registerDynamicScriptsForUrl(url) {
   if (!url) return;
   try {
     const origin = new URL(url).origin;
-    if (origin.includes('localhost:8790') || origin.includes('mesynx.r0073dl053r.com')) {
+    if (origin.includes('localhost:8790')) {
       return;
     }
 

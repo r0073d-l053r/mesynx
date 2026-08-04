@@ -10,7 +10,7 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLongPress } from "@/hooks/use-long-press";
 import { formatDateTime } from "@/lib/format-date";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { formatDurationMs } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";
 import type { DateTimeFormat } from "@/types/common";
@@ -62,6 +63,16 @@ export function RecordingRow({
     registerRef: (id: string, el: HTMLButtonElement | null) => void;
 }) {
     const confirm = useConfirm();
+
+    // `hydrated` is a dependency on purpose: it flips after mount and
+    // forces this to recompute with the browser's clock and timezone,
+    // replacing the server-rendered value that suppressHydrationWarning
+    // deliberately left unpatched.
+    const hydrated = useHydrated();
+    const timeText = useMemo(
+        () => formatDateTime(recording.startTime, dateTimeFormat),
+        [recording.startTime, dateTimeFormat, hydrated],
+    );
 
     // ── Inline title editing ─────────────────────────────────────
     const [editing, setEditing] = useState(false);
@@ -271,11 +282,12 @@ export function RecordingRow({
                                         {formatDurationMs(recording.duration)}
                                     </span>
                                     <span className="mx-1 opacity-40">·</span>
-                                    <span>
-                                        {formatDateTime(
-                                            recording.startTime,
-                                            dateTimeFormat,
-                                        )}
+                                    {/* Relative timestamps drift between the
+                                        SSR moment and hydration; suppress the
+                                        first-paint mismatch and let the
+                                        post-mount render correct it. */}
+                                    <span suppressHydrationWarning>
+                                        {timeText}
                                     </span>
                                 </p>
                             ))}

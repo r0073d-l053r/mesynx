@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { RecordingPlayer } from "@/components/dashboard/recording-player";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { TranscriptionPanel } from "@/components/dashboard/transcription-panel";
 import { LocalTime } from "@/components/local-time";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,10 @@ interface Transcription {
     text?: string;
     detectedLanguage?: string;
     transcriptionType?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 interface RecordingWorkstationProps {

@@ -11,7 +11,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/JygWxS2VA8)
 
-[Quick start](#quick-start) • [What's new vs. Riffado](#whats-new-in-mesynx-ai-vs-riffado) • [Documentation](https://mesynx.r0073dl053r.com/docs) • [Discord](https://discord.gg/JygWxS2VA8)
+[Quick start](#quick-start) • [What's new vs. Riffado](#whats-new-in-mesynx-ai-vs-riffado) • [Documentation](https://mesynx.jewell-net.com/docs) • [Discord](https://discord.gg/JygWxS2VA8)
 
 </div>
 
@@ -113,7 +113,7 @@ You need Docker, a Plaud account at [plaud.ai](https://plaud.ai), and (optionall
 **One-liner (Linux / macOS):**
 
 ```bash
-curl -fsSL https://mesynx.r0073dl053r.com/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/r0073d-l053r/mesynx/main/scripts/install.sh | sh
 ```
 
 Prompts for an install directory and `APP_URL`, downloads `docker-compose.yml` and `.env`, generates secrets, starts the stack, and waits for `/api/health`. Source: [`scripts/install.sh`](scripts/install.sh).
@@ -121,7 +121,7 @@ Prompts for an install directory and `APP_URL`, downloads `docker-compose.yml` a
 **Clone and Build from Source:**
 
 ```bash
-git clone https://github.com/mesynx-ai/mesynx-ai.git
+git clone https://github.com/r0073d-l053r/mesynx.git
 cd mesynx-ai
 
 # Create .env from template
@@ -142,7 +142,7 @@ Open <http://localhost:8790/register> and create your account. The onboarding wi
 
 **Upgrade:** `docker compose pull && docker compose up -d`. Migrations run on container start.
 
-Full install guide, version pinning, image tags, and Windows/WSL notes: [mesynx.r0073dl053r.com/docs/self-hosting/install](https://mesynx.r0073dl053r.com/docs/self-hosting/install).
+Full install guide, version pinning, image tags, and Windows/WSL notes: [mesynx.jewell-net.com/docs/self-hosting/install](https://mesynx.jewell-net.com/docs/self-hosting/install).
 
 > `main` is a rolling integration branch. Deploy from tagged image releases, not by building `main`. See [BRANCHING.md](BRANCHING.md).
 
@@ -150,29 +150,29 @@ Full install guide, version pinning, image tags, and Windows/WSL notes: [mesynx.
 
 Mesynx AI signs into Plaud using your email — the same OTP flow as the official app. The verification code is forwarded directly to Plaud and never stored. Your access token is encrypted with AES-256-GCM before hitting the database. Region (Global, EU, APAC) is auto-detected.
 
-If you signed up to Plaud with **Continue with Google** or **Continue with Apple**, the email-code flow won't return any recordings — that's a different identity on Plaud's side. Use the [Mesynx AI Connector browser extension](https://github.com/r0073d-l053r/mesynx/tree/main/chrome-extension), or paste a token manually. Full instructions: [mesynx.r0073dl053r.com/docs/guides/connect-plaud-account](https://mesynx.r0073dl053r.com/docs/guides/connect-plaud-account).
+If you signed up to Plaud with **Continue with Google** or **Continue with Apple**, the email-code flow won't return any recordings — that's a different identity on Plaud's side. Use the [Mesynx AI Connector browser extension](https://github.com/r0073d-l053r/mesynx/tree/main/chrome-extension), or paste a token manually. Full instructions: [mesynx.jewell-net.com/docs/guides/connect-plaud-account](https://mesynx.jewell-net.com/docs/guides/connect-plaud-account).
 
 > Every line that handles your credentials is open source — [send-code route](src/app/api/plaud/auth/send-code/route.ts) · [verify route](src/app/api/plaud/auth/verify/route.ts) · [encryption](src/lib/encryption.ts).
 
 ## Documentation
 
-Everything lives at **[mesynx.r0073dl053r.com/docs](https://mesynx.r0073dl053r.com/docs)**. Direct links:
+Everything lives at **[mesynx.jewell-net.com/docs](https://mesynx.jewell-net.com/docs)**. Direct links:
 
-- [Install & first run](https://mesynx.r0073dl053r.com/docs/self-hosting/install)
+- [Install & first run](https://mesynx.jewell-net.com/docs/self-hosting/install)
 - [Self-hosted GPU transcription (Whisper)](whisper-server/) — model selection + VAD for long recordings
-- [Environment variables](https://mesynx.r0073dl053r.com/docs/self-hosting/environment-variables)
-- [Upgrading](https://mesynx.r0073dl053r.com/docs/self-hosting/upgrading)
-- [S3-compatible storage](https://mesynx.r0073dl053r.com/docs/self-hosting/storage-s3)
-- [Email / SMTP](https://mesynx.r0073dl053r.com/docs/self-hosting/email-smtp)
-- [Connect your Plaud account](https://mesynx.r0073dl053r.com/docs/guides/connect-plaud-account)
-- [AI providers](https://mesynx.r0073dl053r.com/docs/guides/ai-providers)
-- [Backup & restore](https://mesynx.r0073dl053r.com/docs/guides/backup-and-restore)
-- [Notifications](https://mesynx.r0073dl053r.com/docs/guides/notifications)
-- [Automation & webhooks](https://mesynx.r0073dl053r.com/docs/guides/automation-and-webhooks)
-- [Public API reference](https://mesynx.r0073dl053r.com/docs/reference/public-api)
-- [Encryption at rest](https://mesynx.r0073dl053r.com/docs/reference/encryption-at-rest)
-- [Security model](https://mesynx.r0073dl053r.com/docs/reference/security-model)
-- [Architecture](https://mesynx.r0073dl053r.com/docs/reference/architecture)
+- [Environment variables](https://mesynx.jewell-net.com/docs/self-hosting/environment-variables)
+- [Upgrading](https://mesynx.jewell-net.com/docs/self-hosting/upgrading)
+- [S3-compatible storage](https://mesynx.jewell-net.com/docs/self-hosting/storage-s3)
+- [Email / SMTP](https://mesynx.jewell-net.com/docs/self-hosting/email-smtp)
+- [Connect your Plaud account](https://mesynx.jewell-net.com/docs/guides/connect-plaud-account)
+- [AI providers](https://mesynx.jewell-net.com/docs/guides/ai-providers)
+- [Backup & restore](https://mesynx.jewell-net.com/docs/guides/backup-and-restore)
+- [Notifications](https://mesynx.jewell-net.com/docs/guides/notifications)
+- [Automation & webhooks](https://mesynx.jewell-net.com/docs/guides/automation-and-webhooks)
+- [Public API reference](https://mesynx.jewell-net.com/docs/reference/public-api)
+- [Encryption at rest](https://mesynx.jewell-net.com/docs/reference/encryption-at-rest)
+- [Security model](https://mesynx.jewell-net.com/docs/reference/security-model)
+- [Architecture](https://mesynx.jewell-net.com/docs/reference/architecture)
 
 ## Contributing
 

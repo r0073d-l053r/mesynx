@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CardHeader } from "@/components/ui/card";
 import { formatBytes } from "@/lib/format-bytes";
 import { formatDateTime } from "@/lib/format-date";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { formatDuration } from "@/lib/format-duration";
 import type { Recording } from "@/types/recording";
 
@@ -26,6 +27,9 @@ export function RecordingPlayerHeader({
     onDecodeWaveform,
     onTitleChange,
 }: Props) {
+    // Recomputes after mount so the relative timestamp reflects the
+    // browser's clock rather than the server's SSR moment.
+    useHydrated();
     const metaParts: string[] = [
         formatDateTime(recording.startTime, "relative"),
         formatDuration(duration || recording.duration / 1000),
@@ -147,7 +151,7 @@ export function RecordingPlayerHeader({
                                 ·
                             </span>
                         )}
-                        <span>{part}</span>
+                        <span suppressHydrationWarning>{part}</span>
                     </span>
                 ))}
                 {scrubberStyle === "waveform" &&

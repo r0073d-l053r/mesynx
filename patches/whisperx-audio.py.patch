@@ -1,0 +1,16 @@
+--- a/endpoints/audio.py
++++ b/endpoints/audio.py
+@@ -142,7 +142,12 @@
+ 
+     if model is None:
+         model = settings.transcribe_model
+-    if model != settings.transcribe_model:
++    # PATCH (mesynx 2026-08-03): accept "<model>-diarize" as an alias for the
++    # configured model. The mesynx app signals diarization by appending
++    # "-diarize" to the model name (format.ts: getResponseFormat) while the
++    # stock server 404s any name != settings.transcribe_model, so the
++    # documented convention never worked against this image.
++    if model.removesuffix("-diarize") != settings.transcribe_model:
+         raise ModelNotFoundException()
+ 
+     logger.info("Reading file …")

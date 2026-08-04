@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CommandPalette } from "@/components/dashboard/command-palette";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { PlaudHealthBanner } from "@/components/dashboard/plaud-health-banner";
 import {
     RecordingList,
@@ -44,6 +45,10 @@ import type { Recording } from "@/types/recording";
 interface TranscriptionData {
     text?: string;
     language?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 interface Provider {

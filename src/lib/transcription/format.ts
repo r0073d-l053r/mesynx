@@ -18,8 +18,17 @@ export function parseTranscriptionResponse(
 ): { text: string; detectedLanguage: string | null } {
     if (responseFormat === "diarized_json") {
         const diarized = transcription as TranscriptionDiarized;
+        // Diarizers leave `speaker` unset on segments they can't attribute
+        // (~5% on real multi-speaker audio — usually filler or crosstalk).
+        // Emitting those as `${seg.speaker}: ` would literally write
+        // "null: text" into the transcript. Instead drop the prefix so the
+        // line parses as a continuation of the previous speaker.
         const text = (diarized.segments ?? [])
-            .map((seg) => `${seg.speaker}: ${seg.text}`)
+            .map((seg) => {
+                const body = (seg.text ?? "").trim();
+                return seg.speaker ? `${seg.speaker}: ${body}` : body;
+            })
+            .filter((line) => line.length > 0)
             .join("\n");
         return { text, detectedLanguage: null };
     }

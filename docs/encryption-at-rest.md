@@ -13,6 +13,7 @@ This is **server-held-key envelope encryption.** It is not zero-knowledge.
 | `ai_enhancements.summary` | text | LLM summary |
 | `ai_enhancements.key_points` | jsonb | Stored as `{ "c": "v1:..." }` envelope |
 | `ai_enhancements.action_items` | jsonb | Same envelope shape |
+| `transcriptions.speaker_names` | jsonb | Same envelope shape — custom diarized-speaker names (who spoke) |
 | `user_settings.summary_prompt` | jsonb | Custom prompt configs may carry user context |
 | `user_settings.title_generation_prompt` | jsonb | Same |
 
