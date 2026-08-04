@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { RecordingPlayer } from "@/components/dashboard/recording-player";
-import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { TranscriptionPanel } from "@/components/dashboard/transcription-panel";
 import { LocalTime } from "@/components/local-time";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import type { Recording } from "@/types/recording";
 
 interface Transcription {

@@ -64,6 +64,11 @@ const transcription = {
     recordingId: "rec-1",
     userId: "user-1",
     text: "encrypted:Hello world",
+    // Null exercises the path that matters here: the v1 serializers must
+    // stay readable for rows written before migrations 0026/0027 added
+    // these columns, which is every row on an existing install.
+    speakerNames: null,
+    workspaceNodes: null,
     detectedLanguage: "en",
     transcriptionType: "server",
     provider: "openai",

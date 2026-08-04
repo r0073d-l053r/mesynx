@@ -4,9 +4,9 @@ import { AudioWaveform, Check, Loader2, Pencil, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CardHeader } from "@/components/ui/card";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { formatBytes } from "@/lib/format-bytes";
 import { formatDateTime } from "@/lib/format-date";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { formatDuration } from "@/lib/format-duration";
 import type { Recording } from "@/types/recording";
 

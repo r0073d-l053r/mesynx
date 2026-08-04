@@ -1,16 +1,10 @@
 "use client";
 
 import { ChevronDown, Maximize2, Minus, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react";
-import {
-    subtreeSize,
     type SummaryNode,
+    subtreeSize,
     THEME_CLASSES,
 } from "@/lib/transcription/summary-nodes";
 import { cn } from "@/lib/utils";
@@ -455,9 +449,7 @@ export function ObsidianGraphView({
             // selection too would dim the whole graph from first paint,
             // because a node is always selected.
             const active = hoverRef.current;
-            const neighbours = active
-                ? adjacencyRef.current.get(active)
-                : null;
+            const neighbours = active ? adjacencyRef.current.get(active) : null;
             const particles = [...particlesRef.current.values()];
 
             ctx.save();
@@ -887,6 +879,7 @@ export function ObsidianGraphView({
             ref={wrapRef}
             role="application"
             aria-label="Graph view of transcript sections. Arrow keys pan, plus and minus zoom, 0 fits the graph."
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: role=application is a widget role, not a non-interactive one, and the element must be focusable for the arrow/zoom key handling below to receive any events.
             tabIndex={0}
             onKeyDown={onKeyDown}
             onPointerDown={onPointerDown}

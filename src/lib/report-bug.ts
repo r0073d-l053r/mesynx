@@ -25,10 +25,7 @@ export function buildReportBugUrl(opts: ReportBugOptions): string {
     }
 
     if (opts.isHosted !== undefined) {
-        params.set(
-            "deployment",
-            opts.isHosted ? "Hosted" : "Self-hosted",
-        );
+        params.set("deployment", opts.isHosted ? "Hosted" : "Self-hosted");
     }
 
     const additional = buildAdditional(opts);
@@ -70,9 +67,7 @@ function buildAdditional(opts: ReportBugOptions): string {
     }
     lines.push(`Version: ${APP_VERSION_TAG}`);
     if (opts.isHosted !== undefined) {
-        lines.push(
-            `Mode: ${opts.isHosted ? "Hosted" : "Self-hosted"}`,
-        );
+        lines.push(`Mode: ${opts.isHosted ? "Hosted" : "Self-hosted"}`);
     }
     return lines.join("\n");
 }

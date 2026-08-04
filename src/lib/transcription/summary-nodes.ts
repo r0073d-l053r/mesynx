@@ -175,10 +175,7 @@ export function branchIds(nodes: SummaryNode[], id: string): Set<string> {
 }
 
 /** Delete a node and all of its descendants — never leaves orphans. */
-export function removeBranch(
-    nodes: SummaryNode[],
-    id: string,
-): SummaryNode[] {
+export function removeBranch(nodes: SummaryNode[], id: string): SummaryNode[] {
     const doomed = branchIds(nodes, id);
     return nodes.filter((n) => !doomed.has(n.id));
 }
@@ -340,14 +337,78 @@ export function parseTranscriptChunks(text: string): TranscriptChunk[] {
  * stopword list would strip the domain vocabulary that makes matching work.
  */
 const STOPWORDS = new Set([
-    "the", "and", "but", "for", "you", "your", "that", "this", "with", "have",
-    "has", "was", "were", "are", "not", "all", "any", "can", "will", "would",
-    "should", "could", "just", "like", "get", "got", "one", "two", "our",
-    "out", "who", "how", "why", "what", "when", "where", "they", "them",
-    "their", "there", "then", "than", "some", "more", "most", "into", "from",
-    "about", "know", "think", "really", "going", "gonna", "yeah", "okay",
-    "right", "well", "actually", "basically", "kind", "sort", "mean", "say",
-    "said", "thing", "things", "lot", "want", "need", "make", "made", "take",
+    "the",
+    "and",
+    "but",
+    "for",
+    "you",
+    "your",
+    "that",
+    "this",
+    "with",
+    "have",
+    "has",
+    "was",
+    "were",
+    "are",
+    "not",
+    "all",
+    "any",
+    "can",
+    "will",
+    "would",
+    "should",
+    "could",
+    "just",
+    "like",
+    "get",
+    "got",
+    "one",
+    "two",
+    "our",
+    "out",
+    "who",
+    "how",
+    "why",
+    "what",
+    "when",
+    "where",
+    "they",
+    "them",
+    "their",
+    "there",
+    "then",
+    "than",
+    "some",
+    "more",
+    "most",
+    "into",
+    "from",
+    "about",
+    "know",
+    "think",
+    "really",
+    "going",
+    "gonna",
+    "yeah",
+    "okay",
+    "right",
+    "well",
+    "actually",
+    "basically",
+    "kind",
+    "sort",
+    "mean",
+    "say",
+    "said",
+    "thing",
+    "things",
+    "lot",
+    "want",
+    "need",
+    "make",
+    "made",
+    "take",
 ]);
 
 function tokenize(text: string): string[] {
@@ -438,9 +499,9 @@ export function deriveNodes(input: DeriveInput): SummaryNode[] {
     }[] = [];
 
     if (input.summary?.trim()) {
-        const sentences = (input.summary.match(/[^.!?]+[.!?]+/g) ?? [
-            input.summary,
-        ])
+        const sentences = (
+            input.summary.match(/[^.!?]+[.!?]+/g) ?? [input.summary]
+        )
             .map((s) => s.trim())
             .filter(Boolean)
             .slice(0, 4);
@@ -476,10 +537,7 @@ export function deriveNodes(input: DeriveInput): SummaryNode[] {
     // are opaque and equally sized, the earlier one vanishes completely
     // behind the later one.
     const laneHeights = sections.map((section) =>
-        Math.max(
-            1,
-            Math.min(section.items.length, MAX_ITEMS_PER_SECTION),
-        ),
+        Math.max(1, Math.min(section.items.length, MAX_ITEMS_PER_SECTION)),
     );
     const totalRows = laneHeights.reduce((sum, rows) => sum + rows, 0);
     let cursor = (-(totalRows - 1) / 2) * CHILD_Y_GAP;

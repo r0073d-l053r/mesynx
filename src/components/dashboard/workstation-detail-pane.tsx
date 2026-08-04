@@ -3,10 +3,10 @@
 import { ArrowLeft, Mic } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DotGridBackground } from "@/components/dashboard/dot-grid-background";
-import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { RecordingPlayer } from "@/components/dashboard/recording-player";
 import { TranscriptionPanel } from "@/components/dashboard/transcription-panel";
 import { Button } from "@/components/ui/button";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { cn } from "@/lib/utils";
 import type { Recording } from "@/types/recording";
 

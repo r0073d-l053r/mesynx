@@ -33,7 +33,10 @@ function str(value: unknown, max: number, field: string): string {
     const s = value as string;
     if (s.length > max) bad(`${field} exceeds ${max} characters`);
     // NUL is rejected by Postgres jsonb regardless of column type.
-    return s.replace(/\u0000/g, "");
+    // replaceAll with a string literal avoids a control-character escape
+    // in a regex. Only NUL is stripped - other control characters are
+    // legitimate inside transcript text.
+    return s.replaceAll("\u0000", "");
 }
 
 function finiteNumber(value: unknown, field: string): number {
@@ -85,7 +88,8 @@ function validateNodes(input: unknown): SummaryNode[] {
                 : {};
 
         const theme = typeof n.colorTheme === "string" ? n.colorTheme : "slate";
-        if (!THEMES.has(theme)) bad(`nodes[${i}].colorTheme "${theme}" invalid`);
+        if (!THEMES.has(theme))
+            bad(`nodes[${i}].colorTheme "${theme}" invalid`);
 
         const rawTags = Array.isArray(n.tags) ? n.tags : [];
         if (rawTags.length > MAX_TAGS) bad(`nodes[${i}] has too many tags`);

@@ -27,9 +27,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useLongPress } from "@/hooks/use-long-press";
 import { formatDateTime } from "@/lib/format-date";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { formatDurationMs } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";
 import type { DateTimeFormat } from "@/types/common";
@@ -69,6 +69,7 @@ export function RecordingRow({
     // replacing the server-rendered value that suppressHydrationWarning
     // deliberately left unpatched.
     const hydrated = useHydrated();
+    // biome-ignore lint/correctness/useExhaustiveDependencies: hydrated is not read in the callback but is required — it flips after mount and is what forces this to recompute with the browser clock/timezone instead of keeping the server's UTC value. Removing it reintroduces React #418.
     const timeText = useMemo(
         () => formatDateTime(recording.startTime, dateTimeFormat),
         [recording.startTime, dateTimeFormat, hydrated],

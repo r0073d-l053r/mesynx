@@ -59,7 +59,10 @@ const COLUMNS: FooterColumn[] = [
     {
         title: "Community",
         links: [
-            { label: "Documentation", href: "https://mesynx.jewell-net.com/docs" },
+            {
+                label: "Documentation",
+                href: "https://mesynx.jewell-net.com/docs",
+            },
             {
                 label: "Discussions",
                 href: "https://github.com/r0073d-l053r/mesynx/discussions",

@@ -19,10 +19,15 @@ const MAX_NAME_LENGTH = 60;
  * would let a name span multiple lines when substituted into LLM prompts.
  */
 function sanitizeName(name: string): string {
-    return name
-        .replace(/[\u0000-\u001f\u007f]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    return (
+        name
+            // \p{Cc} is the Unicode "Control" category - C0, DEL and C1.
+            // A property escape covers the same set without control-character
+            // escapes in the pattern, which is also what the linter wants.
+            .replace(/\p{Cc}/gu, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+    );
 }
 
 /**

@@ -57,11 +57,9 @@ describe("report-bug", () => {
             const urlStr = buildReportBugUrl({ isHosted: true });
             const url = new URL(urlStr);
 
-            expect(url.searchParams.get("deployment")).toBe(
-                "Hosted (mesynx.r0073dl053r.com)",
-            );
+            expect(url.searchParams.get("deployment")).toBe("Hosted");
             expect(url.searchParams.get("additional")).toBe(
-                `Version: ${APP_VERSION_TAG}\nMode: Hosted (mesynx.r0073dl053r.com)`,
+                `Version: ${APP_VERSION_TAG}\nMode: Hosted`,
             );
         });
 
@@ -96,11 +94,9 @@ describe("report-bug", () => {
             expect(url.searchParams.get("description")).toBe(
                 "While trying to: saving file\n\nError id: `ERR_123`",
             );
-            expect(url.searchParams.get("deployment")).toBe(
-                "Hosted (mesynx.r0073dl053r.com)",
-            );
+            expect(url.searchParams.get("deployment")).toBe("Hosted");
             expect(url.searchParams.get("additional")).toBe(
-                `Page: \`/dashboard\`\nVersion: ${APP_VERSION_TAG}\nMode: Hosted (mesynx.r0073dl053r.com)`,
+                `Page: \`/dashboard\`\nVersion: ${APP_VERSION_TAG}\nMode: Hosted`,
             );
         });
     });

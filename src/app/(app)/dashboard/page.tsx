@@ -10,9 +10,9 @@ import {
 import { isAdminEmail } from "@/lib/admin/guard";
 import { requireAuth } from "@/lib/auth-server";
 import { decryptJsonField, decryptText } from "@/lib/encryption/fields";
-import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { env } from "@/lib/env";
 import { initialSettingsFromRow } from "@/lib/settings/initial-settings";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { serializeRecording } from "@/types/recording";
 
 export default async function DashboardPage() {

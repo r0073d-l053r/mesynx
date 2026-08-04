@@ -175,15 +175,15 @@ export function DiarizedTranscript({
                         <Users className="size-3" />
                         {speakerCount} speakers
                     </span>
-                    {Array.from(speakerIndex.keys()).map((speakerId) =>
+                    {Array.from(speakerIndex.keys()).map((speakerId) => (
                         <span key={speakerId}>
                             {renderBadge(
                                 speakerId,
                                 "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
                                 `legend:${speakerId}`,
                             )}
-                        </span>,
-                    )}
+                        </span>
+                    ))}
                 </div>
             )}
 

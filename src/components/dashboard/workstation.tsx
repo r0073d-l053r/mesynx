@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CommandPalette } from "@/components/dashboard/command-palette";
-import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { PlaudHealthBanner } from "@/components/dashboard/plaud-health-banner";
 import {
     RecordingList,
@@ -39,6 +38,7 @@ import {
 } from "@/lib/notifications/browser";
 import type { InitialSettings } from "@/lib/settings/initial-settings";
 import { SYNC_CONFIG } from "@/lib/sync-config";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { cn } from "@/lib/utils";
 import type { Recording } from "@/types/recording";
 

@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { type DateTimeFormat, formatDateTime } from "@/lib/format-date";
-import { resolveSpeakerTokens } from "@/lib/transcription/parse-diarized";
 import { formatDurationMs } from "@/lib/format-duration";
+import { resolveSpeakerTokens } from "@/lib/transcription/parse-diarized";
 import type { Recording } from "@/types/recording";
 
 export const RECORDING_CAP = 200;

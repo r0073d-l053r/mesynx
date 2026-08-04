@@ -10,6 +10,7 @@ import {
     useRef,
     useState,
 } from "react";
+import { transcriptSnippet } from "@/components/dashboard/command-palette-parts";
 import {
     type PendingUpload,
     PendingUploadRow,
@@ -20,9 +21,8 @@ import {
     type SortOrder,
 } from "@/components/dashboard/recording-list-toolbar";
 import { RecordingRow } from "@/components/dashboard/recording-row";
-import { dateGroupLabel } from "@/lib/format-date";
-import { transcriptSnippet } from "@/components/dashboard/command-palette-parts";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { dateGroupLabel } from "@/lib/format-date";
 import type { DateTimeFormat } from "@/types/common";
 import type { Recording } from "@/types/recording";
 
@@ -68,7 +68,6 @@ function persistSetting(field: string, value: unknown) {
         body: JSON.stringify({ [field]: value }),
     }).catch(() => {});
 }
-
 
 export function RecordingList({
     recordings,
@@ -153,6 +152,7 @@ export function RecordingList({
 
     const visible = filtered.slice(0, visibleCount);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: hydrated is not read here but must stay — dateGroupLabel compares against today/yesterday, and the server runs UTC while the browser runs local time, so the post-mount flip is what re-groups correctly.
     const grouped = useMemo(() => {
         if (sortOrder === "name") {
             return [{ label: null as string | null, items: visible }];

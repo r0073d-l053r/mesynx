@@ -5,12 +5,12 @@ import {
     ChevronRight,
     CornerLeftUp,
     FileText,
-    RefreshCw,
     Maximize2,
     Minus,
     Network,
     Pencil,
     Plus,
+    RefreshCw,
     Share2,
     Trash2,
     X,
@@ -26,12 +26,16 @@ import {
 import { createPortal } from "react-dom";
 import { ObsidianGraphView } from "@/components/dashboard/obsidian-graph-view";
 import {
+    resolveSpeakerLabel,
+    resolveSpeakerTokens,
+} from "@/lib/transcription/parse-diarized";
+import {
     branchIds,
+    COLOR_THEMES,
+    type ColorTheme,
     childPosition,
     childrenOf,
     collectSegments,
-    COLOR_THEMES,
-    type ColorTheme,
     createNode,
     depthOf,
     NODE_HEIGHT,
@@ -39,15 +43,11 @@ import {
     pathTo,
     removeBranch,
     rootNodes,
-    segmentCount,
     type SummaryNode,
+    segmentCount,
     THEME_CLASSES,
     type TranscriptChunk,
 } from "@/lib/transcription/summary-nodes";
-import {
-    resolveSpeakerLabel,
-    resolveSpeakerTokens,
-} from "@/lib/transcription/parse-diarized";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "map" | "graph" | "document";
@@ -619,7 +619,8 @@ function MapCanvas({
             )}
             style={
                 {
-                    "--dot": "color-mix(in srgb, var(--foreground) 14%, transparent)",
+                    "--dot":
+                        "color-mix(in srgb, var(--foreground) 14%, transparent)",
                     backgroundPosition: `${transform.x}px ${transform.y}px`,
                 } as React.CSSProperties
             }
@@ -691,10 +692,7 @@ function IconButton({
 /* ------------------------------------------------------------------ */
 
 function EdgeLayer({ nodes }: { nodes: SummaryNode[] }) {
-    const byId = useMemo(
-        () => new Map(nodes.map((n) => [n.id, n])),
-        [nodes],
-    );
+    const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
     const paths = useMemo(() => {
         const out: { id: string; d: string; stroke: string }[] = [];
@@ -766,6 +764,7 @@ function NodeCard({
         // Focusable and operable by keyboard: selecting a card is the only
         // way to reach the detail pane, so a pointer-only card would make
         // reading, editing and deleting a section keyboard-unreachable.
+        // biome-ignore lint/a11y/useSemanticElements: cannot be a button — the card is drag-repositionable via pointer events and contains its own interactive controls, and nesting those in a button is invalid HTML.
         <div
             role="button"
             tabIndex={0}
@@ -788,7 +787,9 @@ function NodeCard({
                 "group absolute flex cursor-grab flex-col gap-1 rounded-xl border bg-card p-3 text-left shadow-sm transition-shadow active:cursor-grabbing",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 theme.border,
-                selected ? cn("ring-2 shadow-md", theme.ring) : "hover:shadow-md",
+                selected
+                    ? cn("ring-2 shadow-md", theme.ring)
+                    : "hover:shadow-md",
             )}
         >
             <div className="flex items-start gap-1.5">
@@ -1006,7 +1007,10 @@ function ReadView({
                     className="flex flex-wrap items-center gap-0.5 text-[10px] text-muted-foreground/70"
                 >
                     {trail.slice(0, -1).map((step) => (
-                        <span key={step.id} className="flex items-center gap-0.5">
+                        <span
+                            key={step.id}
+                            className="flex items-center gap-0.5"
+                        >
                             <button
                                 type="button"
                                 onClick={() => onSelect(step.id)}
@@ -1168,7 +1172,8 @@ function SpeakerChip({
 }) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState("");
-    const isRenameable = Boolean(onRename) && /^(?:SPEAKER|speaker)_\d+$/.test(speaker);
+    const isRenameable =
+        Boolean(onRename) && /^(?:SPEAKER|speaker)_\d+$/.test(speaker);
     const shown = resolveSpeakerLabel(speaker, speakerNames) || "Unattributed";
 
     if (editing) {
@@ -1305,7 +1310,6 @@ function Disclosure({
     );
 }
 
-
 const FIELD =
     "w-full rounded-lg border border-border/60 bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring";
 
@@ -1434,9 +1438,7 @@ function EditForm({
 
                 {node.detailedTranscript.map((chunk, index) => (
                     <div
-                        // Index-keyed on purpose: chunks have no stable id and
-                        // are edited in place, so a content-derived key would
-                        // remount the input on every keystroke.
+                        // biome-ignore lint/suspicious/noArrayIndexKey: chunks have no stable id and are edited in place; a content-derived key would remount the input on every keystroke and lose focus.
                         key={`chunk-${index}`}
                         className="space-y-1.5 rounded-lg border border-border/50 p-2"
                     >
@@ -1549,6 +1551,7 @@ function Field({
     children: React.ReactNode;
 }) {
     return (
+        // biome-ignore lint/a11y/noLabelWithoutControl: the control arrives as children, so the association is implicit and correct at runtime; the rule cannot see it statically.
         <label className="block space-y-1">
             <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
                 {label}
@@ -1747,6 +1750,7 @@ function AutoTextarea({
     // a visible reflow flash each time Document view mounts. Depending on
     // `value` also keeps the height right when the text changes from
     // outside this component (e.g. edits made in the map's detail pane).
+    // biome-ignore lint/correctness/useExhaustiveDependencies: value is not read — height is measured from the DOM — but it is the signal that the text changed; without it the textarea keeps a stale height when edits arrive from the detail pane.
     useLayoutEffect(() => {
         const el = ref.current;
         if (!el) return;

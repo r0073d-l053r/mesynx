@@ -18,6 +18,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DiarizedTranscript } from "@/components/dashboard/diarized-transcript";
+import { WorkspaceModal } from "@/components/dashboard/editable-transcription-workspace";
 import { ExportMenu } from "@/components/dashboard/export-menu";
 import { GenerateButton } from "@/components/dashboard/generate-button";
 import {
@@ -28,7 +29,6 @@ import {
     GeneratePipeline,
     type PipelineStage,
 } from "@/components/dashboard/generate-pipeline";
-import { WorkspaceModal } from "@/components/dashboard/editable-transcription-workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -977,7 +977,10 @@ export function TranscriptionPanel({
                                                                     className="flex items-start gap-2.5 text-sm text-foreground/80"
                                                                 >
                                                                     <span className="mt-2 size-1.5 rounded-full bg-primary shrink-0" />
-                                                                    {resolveSpeakerTokens(point, speakerNames)}
+                                                                    {resolveSpeakerTokens(
+                                                                        point,
+                                                                        speakerNames,
+                                                                    )}
                                                                 </li>
                                                             ),
                                                         )}
@@ -1000,7 +1003,10 @@ export function TranscriptionPanel({
                                                                     className="flex items-start gap-2.5 text-sm text-foreground/80"
                                                                 >
                                                                     <ListChecks className="size-3.5 mt-0.5 text-primary shrink-0" />
-                                                                    {resolveSpeakerTokens(item, speakerNames)}
+                                                                    {resolveSpeakerTokens(
+                                                                        item,
+                                                                        speakerNames,
+                                                                    )}
                                                                 </li>
                                                             ),
                                                         )}

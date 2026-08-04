@@ -84,8 +84,7 @@ export async function sendEmailWithError(options: EmailOptions): Promise<void> {
         );
     }
 
-    const fromEmail =
-        env.SMTP_FROM || env.SMTP_USER || "noreply@mesynx.local";
+    const fromEmail = env.SMTP_FROM || env.SMTP_USER || "noreply@mesynx.local";
 
     try {
         await mailer.sendMail({
