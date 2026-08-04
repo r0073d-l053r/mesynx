@@ -57,6 +57,9 @@ plans/
 bun.lock
 /src/.source
 
+# screenshot capture artifacts (temporary playwright scripts)
+/.screenshot-tmp/
+
 # logs
 *.log
 
@@ -65,3 +68,6 @@ bun.lock
 patches/*.py
 docker-compose.yml.bak-*
 patches/*.orig
+
+# Host-specific compose deviations (GPU pinning, disabled services).
+docker-compose.override.yml

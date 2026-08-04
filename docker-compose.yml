@@ -76,45 +76,86 @@ services:
     networks:
       - mesynx-network
 
-  # WhisperX: transcription + forced alignment + speaker diarization over an
-  # OpenAI-compatible API. This is now the ONLY transcription service — the
-  # legacy fedirz/faster-whisper-server was removed 2026-08-04 because
-  # whisperx supersedes it and the two competed for the same 8 GB GPU.
-  # Prereqs (both required, or it crash-loops on a gated-repo 401 like the
-  # ~3,091-restart loop that got it removed the first time):
-  #   1. accept https://hf.co/pyannote/speaker-diarization-community-1
-  #   2. set HF_TOKEN=hf_... (read scope) in .env
-  # The entrypoint guard below refuses to boot without HF_TOKEN and idles
-  # instead of crash-looping.
+  whisper:
+    # CPU by default so the core stack runs on any host. For GPU acceleration,
+    # opt in via docker-compose.gpu.yml — it overrides this to the CUDA image
+    # and adds a GPU reservation. See that file's header for the exact command.
+    image: ${WHISPER_IMAGE:-fedirz/faster-whisper-server:latest-cpu}
+    container_name: mesynx-whisper
+    restart: unless-stopped
+    ports:
+      - "8397:8000"
+    environment:
+      # Enable Voice Activity Detection — skips non-speech segments before
+      # they reach Whisper. Single biggest fix for hallucinations on long
+      # recordings with pauses. Set to false only if VAD trims real speech.
+      WHISPER__VAD_ENABLED: "true"
+      # Allow larger chunked uploads (default 10 MB is too small for
+      # recordings over ~15 minutes at standard bitrate).
+      WHISPER__MAX_AUDIO_FILE_SIZE_MB: "500"
+    healthcheck:
+      # This image ships no curl, so a curl-based check never passes: the
+      # container reports unhealthy from creation, and any restart-on-unhealthy
+      # supervisor (autoheal and friends) then restarts it in a loop. Observed
+      # in the wild as 5,126 restarts over 43 days, which silently killed every
+      # transcription that ran longer than the restart window and looked exactly
+      # like "Whisper is inaccurate". Use the interpreter the image does have.
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/models', timeout=5)" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+    volumes:
+      # Persist downloaded Whisper models across container recreates.
+      # large-v3 is ~3 GB; without this it re-downloads every restart.
+      - whisper_cache:/root/.cache/huggingface
+    networks:
+      - mesynx-network
+
   whisperx:
+    # WhisperX: forced-alignment + speaker diarization over an OpenAI-compatible API.
+    # GPU only — there is no CPU image for this service.
+    # Gated behind the `gpu` profile: not pulled or started unless you run with
+    # `--profile gpu`. Diarization requires a Hugging Face token (HF_TOKEN) and a
+    # licence acceptance on https://hf.co/pyannote/speaker-diarization-community-1
     image: ghcr.io/etalab-ia/whisperx-openai-api:latest
+    profiles: ["gpu"]
     container_name: mesynx-whisperx
     restart: unless-stopped
     ports:
       - "8398:8000"
     environment:
-      # Must match the API key entered in Mesynx AI -> Settings -> AI Providers.
+      # API key the server will require on every request. Must match the
+      # API key you enter in Mesynx AI → Settings → AI Providers.
       - API_KEY=${WHISPERX_API_KEY:-sk-placeholder}
-      # Read-scope token from https://hf.co/settings/tokens, AFTER accepting
-      # the pyannote licence (see block comment above).
+      # Required for pyannote diarization models. Obtain a read token from
+      # https://hf.co/settings/tokens after accepting the pyannote licence.
       - HF_TOKEN=${HF_TOKEN:-}
+      # Default Whisper model. Append "-diarize" to a model name in Mesynx AI
+      # (e.g. "large-v3-turbo-diarize") to activate speaker diarization.
       - TRANSCRIBE_MODEL=${WHISPERX_MODEL:-large-v3-turbo}
-      # Image default is 32 — far too high for these GPUs. Measured: the
-      # resident model set alone occupies ~6.5 GB of GPU0's 8 GB, so
-      # activation memory has to fit in the remaining ~1.5 GB. Batch 8
-      # overflowed that on a 17-minute file (CUDA out of memory); 4 leaves
-      # headroom. Lower further if longer recordings still fail.
-      - BATCH_SIZE=${WHISPERX_BATCH_SIZE:-4}
-      # Let the allocator grow segments instead of reserving fixed pools —
-      # markedly reduces fragmentation-driven OOM on a nearly-full GPU.
+      # Number of audio chunks processed in parallel — the dominant driver of
+      # activation memory. Measured on an 8 GB card: the resident model set
+      # alone takes ~4 GB, and batch 8 still overflowed the remainder on a
+      # 17-minute file (`CUDA failed with error out of memory`, surfacing to
+      # the app as a bare 500 with nothing in its own logs). Use 4 on 8 GB,
+      # 8 on 12 GB, 16+ on 16 GB and above.
+      - BATCH_SIZE=${WHISPERX_BATCH_SIZE:-8}
+      # Let the allocator grow segments instead of reserving fixed pools.
+      # Without this, a long-lived CUDA process on a nearly-full card creeps
+      # upward through fragmentation — observed going from 2.6 GB to 6.5 GB
+      # over ~17 hours of uptime and then failing mid-transcription.
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-      # Image default preloads en/fr/nl/de align models (~4.1 GB resident).
+      # The image preloads en/fr/nl/de alignment models (~4.1 GB resident).
       # English-only cuts that to ~0.4 GB; other languages still work, their
-      # align model just loads on demand per request.
-      - PRELOADED_ALIGN_MODEL_LANGUAGES=["en"]
-    # Guard: refuse to boot without HF_TOKEN, idling (not crash-looping) so a
-    # misconfigured start is obvious in `docker ps` + logs instead of hammering
-    # the docker daemon. Mirrors the image ENTRYPOINT (Dockerfile:78) otherwise.
+      # alignment model just loads on demand for the first request in that
+      # language. Set to a JSON array to preload more, e.g. '["en","fr"]'.
+      - PRELOADED_ALIGN_MODEL_LANGUAGES=${WHISPERX_ALIGN_LANGUAGES:-["en"]}
+    # Refuse to boot without HF_TOKEN, idling with a clear message rather than
+    # crash-looping. The image builds its pyannote pipeline unconditionally at
+    # startup, so a missing or unlicensed token is a gated-repo 401 on every
+    # start — which restarts forever and hammers the Docker daemon. Mirrors the
+    # image ENTRYPOINT otherwise.
     entrypoint:
       - sh
       - -c
@@ -129,30 +170,29 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              # GPU0 alongside whisper: resident ~3.5-4.5 GB (turbo model +
-              # pyannote + en align) fits the 2070 SUPER when whisper's
-              # lazy-loaded model is evicted; both never serve simultaneously
-              # for the same recording. GPU1 belongs to ollama.
-              device_ids: [ "0" ]
+              count: all
               capabilities: [ gpu ]
     healthcheck:
-      # No curl in this image, and /v1/models requires bearer auth — /health
-      # is the unauthenticated monitoring route. Long start_period: first boot
-      # downloads pyannote + align models (~1-2 GB).
+      # This image ships no curl, so a curl-based check can never pass — it
+      # reports unhealthy forever, and anything that restarts on unhealthy
+      # (autoheal, orchestrators) will restart it in a loop, killing every
+      # transcription longer than the interval. /v1/models also requires the
+      # bearer key; /health is the unauthenticated route. Long start_period
+      # because first boot downloads pyannote + alignment models (~1-2 GB).
       test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=8)" ]
       interval: 30s
       timeout: 10s
       start_period: 300s
       retries: 5
     volumes:
-      # Model cache survives recreates (volume still holds 1.6 GB from the
-      # previous install).
+      # Cache downloaded Whisper + diarization models across restarts.
+      # pyannote models are ~3 GB; whisperx models are another ~3 GB.
       - whisperx_cache:/data/models
-      # PATCH: accept "<model>-diarize" as a model alias — the mesynx app
-      # signals diarization via the "-diarize" suffix but the stock server
-      # 404s any model name it doesn't recognize verbatim. Original code in
-      # the image; patch is a copy of endpoints/audio.py with one check
-      # loosened (see patches/whisperx-audio.py).
+      # Accept "<model>-diarize" as a model alias. Mesynx signals diarization
+      # by appending the suffix, but the stock server 404s any model name that
+      # isn't exactly TRANSCRIBE_MODEL — so the documented convention returns
+      # 404 without this. Run ./patches/apply.sh once to generate the file;
+      # see patches/README.md.
       - ./patches/whisperx-audio.py:/app/endpoints/audio.py:ro
     networks:
       - mesynx-network
@@ -161,6 +201,8 @@ volumes:
   pgdata:
     driver: local
   audio:
+    driver: local
+  whisper_cache:
     driver: local
   whisperx_cache:
     driver: local

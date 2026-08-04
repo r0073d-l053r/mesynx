@@ -48,45 +48,49 @@ The check calls `api.github.com` once per session. If your instance
 shouldn't phone home at all, set `DISABLE_UPDATE_CHECK=true` in your
 `.env` and the badge disappears unconditionally.
 
-## Breaking change: the bundled `whisper` service is gone
+## If your transcription container restarts every few minutes
 
-**Affects every install whose transcription provider points at
-`http://whisper:8000/v1`.** WhisperX supersedes the bundled
-[faster-whisper-server](https://github.com/fedirz/faster-whisper-server) —
-same transcription, plus forced alignment and speaker diarization — and the
-two competed for the same GPU, so the older service was removed from
-`docker-compose.yml`.
+**Check this one even if nothing looks wrong.** Both the `whisper` and
+`whisperx` healthchecks used to call `curl`, and **neither image ships curl**.
+The check could therefore never pass: the container reported unhealthy from
+the moment it was created, and any supervisor that restarts on unhealthy —
+[autoheal](https://github.com/willfarrell/docker-autoheal) is the common one —
+restarted it in a loop forever.
 
-Nothing warns you about this. The stack comes up healthy and the provider row
-still looks fine in Settings; transcription just fails the next time you use
-it, because the hostname no longer resolves.
-
-Check whether you're affected **before** upgrading:
+The damage is quiet. Short transcriptions squeeze through between restarts;
+anything longer than the restart window is killed mid-flight and comes back
+truncated or hallucinated. One install accumulated **5,126 restarts over 43
+days** and read the whole thing as "Whisper is inaccurate".
 
 ```bash
-docker compose exec db psql -U postgres -d mesynx-ai \
-  -c "SELECT id, nickname, base_url FROM api_credentials WHERE base_url LIKE '%whisper:%';"
+docker inspect mesynx-whisper --format '{{.RestartCount}}'
+docker inspect mesynx-whisper --format '{{json .Config.Healthcheck.Test}}'
 ```
 
-Any row returned needs repointing. Do it in the UI — **Settings → AI Providers**
-— rather than by hand: `api_credentials.api_key` is decrypted with a
-non-plaintext-tolerant path, so a row written by raw SQL fails with
-`Could not decrypt the API key` and a 400 on every generate.
+A large restart count, or a healthcheck mentioning `curl`, means you're
+affected. Upgrading `docker-compose.yml` fixes it — both checks now use
+`python3`, which both images do have.
 
-Set the base URL to `http://whisperx:8000/v1` and the model to
-`large-v3-turbo-diarize`. The `-diarize` suffix is how the app requests
-diarization.
+The general lesson is worth keeping: **a healthcheck must assert real state
+and its binary must exist in the image.** Before trusting any healthcheck:
 
-### WhisperX needs two things the old service didn't
+```bash
+docker exec <container> command -v curl   # or whatever the check invokes
+```
+
+## Enabling WhisperX (diarization)
+
+WhisperX is optional and GPU-only; it stays behind the `gpu` compose profile,
+so nothing changes for CPU-only installs. To turn it on:
 
 1. **Accept the pyannote licence** at
    [hf.co/pyannote/speaker-diarization-community-1](https://hf.co/pyannote/speaker-diarization-community-1),
-   then put a read-scope token in `.env` as `HF_TOKEN=hf_...`. The image builds
+   then set a read-scope token in `.env` as `HF_TOKEN=hf_...`. The image builds
    its diarization pipeline unconditionally at startup, so without a valid
-   token it fails with a gated-repo 401 and restarts forever. An entrypoint
-   guard now idles with a clear message instead of crash-looping, but it still
-   won't transcribe.
-2. **Materialise the model-alias patch**, once, before first start:
+   token it fails with a gated-repo 401. An entrypoint guard now idles with a
+   clear message rather than crash-looping, but it still won't transcribe.
+
+2. **Materialise the model-alias patch**, once:
 
    ```bash
    ./patches/apply.sh
@@ -96,16 +100,38 @@ diarization.
    the stock image rejects any model name that isn't exactly its configured
    one. See [`patches/README.md`](https://github.com/r0073d-l053r/mesynx/blob/main/patches/README.md).
 
-### Reclaiming the old model cache
+3. **Start it** and point a provider at it:
 
-The `whisper_cache` volume is deliberately left intact so an upgrade never
-destroys downloaded models. It holds several GB. Once the new stack is
-working:
+   ```bash
+   docker compose --profile gpu up -d
+   ```
 
-```bash
-docker volume ls | grep whisper_cache
-docker volume rm <project>_whisper_cache
-```
+   In **Settings → AI Providers**, set the base URL to
+   `http://whisperx:8000/v1` and the model to `large-v3-turbo-diarize` — the
+   `-diarize` suffix is how the app requests diarization. Do this in the UI
+   rather than by hand: `api_credentials.api_key` is decrypted through a
+   non-plaintext-tolerant path, so a row written by raw SQL fails with
+   `Could not decrypt the API key` and a 400 on every generate.
+
+### Sizing `BATCH_SIZE`
+
+The single biggest driver of GPU memory. The default is now **8** (was 16).
+
+| VRAM | `WHISPERX_BATCH_SIZE` |
+| ---- | --------------------- |
+| 8 GB  | `4` |
+| 12 GB | `8` |
+| 16 GB+ | `16` |
+
+Too high shows up as `CUDA failed with error out of memory` in the **whisperx**
+logs, while the app surfaces only a bare 500 with nothing in its own log —
+the failure is upstream of it. When transcription 500s with no app-side log,
+check `docker logs mesynx-whisperx` and `nvidia-smi` first.
+
+Note that uptime is a variable: a long-lived CUDA process on a nearly-full card
+fragments its allocator and creeps upward — one container went from 2.6 GB to
+6.5 GB over ~17 hours before failing. `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+is now set by default to counter that, and a restart reclaims the rest.
 
 ## Upgrading past the speaker-names and workspace release
 

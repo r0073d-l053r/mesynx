@@ -58,6 +58,259 @@ interface EditProviderDialogProps {
     isHosted?: boolean;
 }
 
+function ProviderSelectSection({
+    providerName,
+    isLoading,
+    handleProviderChange,
+    visiblePresets,
+    legacyLocalProvider,
+}: {
+    providerName: string;
+    isLoading: boolean;
+    handleProviderChange: (value: string) => void;
+    visiblePresets: readonly ReturnType<typeof getVisiblePresets>[number][];
+    legacyLocalProvider: string | null;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label>Provider</Label>
+            <Select
+                value={providerName}
+                onValueChange={handleProviderChange}
+                disabled={isLoading}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Select a provider" />
+                </SelectTrigger>
+                <SelectContent>
+                    {visiblePresets.map((preset) => (
+                        <SelectItem key={preset.name} value={preset.name}>
+                            {preset.name}
+                        </SelectItem>
+                    ))}
+                    {legacyLocalProvider && (
+                        <SelectItem
+                            key={legacyLocalProvider}
+                            value={legacyLocalProvider}
+                            disabled
+                        >
+                            {legacyLocalProvider} (not available on hosted)
+                        </SelectItem>
+                    )}
+                </SelectContent>
+            </Select>
+            {legacyLocalProvider && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                    <span>
+                        {legacyLocalProvider} isn&apos;t usable on the hosted
+                        app — we can&apos;t reach your machine. Delete this
+                        provider and re-add one with a public endpoint, or
+                        self-host Mesynx AI (
+                        <code className="font-mono">docker compose up</code>
+                        ).
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function NicknameInputSection({
+    nickname,
+    setNickname,
+    isLoading,
+}: {
+    nickname: string;
+    setNickname: (nickname: string) => void;
+    isLoading: boolean;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor="nickname">Nickname (Optional)</Label>
+            <Input
+                id="nickname"
+                type="text"
+                placeholder="e.g. My Whisper Server"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                disabled={isLoading}
+                className="text-sm"
+                maxLength={100}
+            />
+            <p className="text-xs text-muted-foreground">
+                A friendly name to help you identify this provider
+            </p>
+        </div>
+    );
+}
+
+function ApiKeyInputSection({
+    apiKey,
+    setApiKey,
+    providerName,
+    setProviderName,
+    selectedPreset,
+    isLoading,
+}: {
+    apiKey: string;
+    setApiKey: (apiKey: string) => void;
+    providerName: string;
+    setProviderName: (name: string) => void;
+    selectedPreset: ReturnType<typeof findPreset> | undefined;
+    isLoading: boolean;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor="apiKey">API Key</Label>
+            <Input
+                id="apiKey"
+                type="password"
+                placeholder={
+                    selectedPreset?.placeholder ||
+                    "Enter a new key to replace the current one"
+                }
+                value={apiKey}
+                onChange={(e) => {
+                    setApiKey(e.target.value);
+                    if (!providerName) {
+                        setProviderName("Custom");
+                    }
+                }}
+                disabled={isLoading}
+                className="font-mono text-sm"
+            />
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <Shield className="size-3.5 shrink-0" />
+                <span>
+                    For security, the saved API key is never shown. Leave this
+                    blank to keep your current key, or enter a new key to
+                    replace it.
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function BaseUrlInputSection({
+    baseUrl,
+    setBaseUrl,
+    providerName,
+    setProviderName,
+    isLoading,
+    isHosted,
+    isTesting,
+    handleTestConnection,
+    testResult,
+}: {
+    baseUrl: string;
+    setBaseUrl: (baseUrl: string) => void;
+    providerName: string;
+    setProviderName: (name: string) => void;
+    isLoading: boolean;
+    isHosted: boolean;
+    isTesting: boolean;
+    handleTestConnection: () => void;
+    testResult: { ok: boolean; message: string } | null;
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor="baseUrl">Base URL (Optional)</Label>
+            <Input
+                id="baseUrl"
+                type="text"
+                placeholder="https://api.example.com/v1"
+                value={baseUrl}
+                onChange={(e) => {
+                    setBaseUrl(e.target.value);
+                    if (!providerName) {
+                        setProviderName("Custom");
+                    }
+                }}
+                disabled={isLoading}
+                className="font-mono text-sm"
+            />
+            {isHosted && (
+                <p className="text-xs text-muted-foreground">
+                    We can&apos;t reach{" "}
+                    <code className="font-mono">localhost</code> or other
+                    private addresses from the hosted app. To use LM Studio or
+                    Ollama, self-host Mesynx AI (
+                    <code className="font-mono">docker compose up</code>
+                    ).
+                </p>
+            )}
+            <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting || (!providerName && !baseUrl)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+                {isTesting ? (
+                    <Loader2 className="size-3 animate-spin" />
+                ) : (
+                    <Plug className="size-3" />
+                )}
+                {isTesting ? "Testing..." : "Test Connection"}
+            </button>
+            {testResult && (
+                <div
+                    className={`flex items-start gap-2 rounded-md border p-2 text-xs ${
+                        testResult.ok
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                    }`}
+                >
+                    {testResult.ok ? (
+                        <CheckCircle2 className="size-3.5 shrink-0 mt-0.5" />
+                    ) : (
+                        <XCircle className="size-3.5 shrink-0 mt-0.5" />
+                    )}
+                    <span>{testResult.message}</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function DefaultUsagePanel({
+    isDefaultTranscription,
+    setIsDefaultTranscription,
+    isDefaultEnhancement,
+    setIsDefaultEnhancement,
+    isLoading,
+}: {
+    isDefaultTranscription: boolean;
+    setIsDefaultTranscription: (value: boolean) => void;
+    isDefaultEnhancement: boolean;
+    setIsDefaultEnhancement: (value: boolean) => void;
+    isLoading: boolean;
+}) {
+    return (
+        <Panel variant="inset" className="space-y-2 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={isDefaultTranscription}
+                    onChange={(e) =>
+                        setIsDefaultTranscription(e.target.checked)
+                    }
+                    disabled={isLoading}
+                />
+                <span>Use for transcription</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={isDefaultEnhancement}
+                    onChange={(e) => setIsDefaultEnhancement(e.target.checked)}
+                    disabled={isLoading}
+                />
+                <span>Use for AI enhancements</span>
+            </label>
+        </Panel>
+    );
+}
 export function EditProviderDialog({
     open,
     onOpenChange,
@@ -249,159 +502,40 @@ export function EditProviderDialog({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Provider</Label>
-                        <Select
-                            value={providerName}
-                            onValueChange={handleProviderChange}
-                            disabled={isLoading}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a provider" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {visiblePresets.map((preset) => (
-                                    <SelectItem
-                                        key={preset.name}
-                                        value={preset.name}
-                                    >
-                                        {preset.name}
-                                    </SelectItem>
-                                ))}
-                                {legacyLocalProvider && (
-                                    <SelectItem
-                                        key={legacyLocalProvider}
-                                        value={legacyLocalProvider}
-                                        disabled
-                                    >
-                                        {legacyLocalProvider} (not available on
-                                        hosted)
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                        {legacyLocalProvider && (
-                            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-                                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                                <span>
-                                    {legacyLocalProvider} isn&apos;t usable on
-                                    the hosted app — we can&apos;t reach your
-                                    machine. Delete this provider and re-add one
-                                    with a public endpoint, or self-host Mesynx
-                                    AI (
-                                    <code className="font-mono">
-                                        docker compose up
-                                    </code>
-                                    ).
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    <ProviderSelectSection
+                        providerName={providerName}
+                        isLoading={isLoading}
+                        handleProviderChange={handleProviderChange}
+                        visiblePresets={visiblePresets}
+                        legacyLocalProvider={legacyLocalProvider}
+                    />
 
-                    <div className="space-y-2">
-                        <Label htmlFor="nickname">Nickname (Optional)</Label>
-                        <Input
-                            id="nickname"
-                            type="text"
-                            placeholder="e.g. My Whisper Server"
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
-                            disabled={isLoading}
-                            className="text-sm"
-                            maxLength={100}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            A friendly name to help you identify this provider
-                        </p>
-                    </div>
+                    <NicknameInputSection
+                        nickname={nickname}
+                        setNickname={setNickname}
+                        isLoading={isLoading}
+                    />
 
-                    <div className="space-y-2">
-                        <Label htmlFor="apiKey">API Key</Label>
-                        <Input
-                            id="apiKey"
-                            type="password"
-                            placeholder={
-                                selectedPreset?.placeholder ||
-                                "Enter a new key to replace the current one"
-                            }
-                            value={apiKey}
-                            onChange={(e) => {
-                                setApiKey(e.target.value);
-                                if (!providerName) {
-                                    setProviderName("Custom");
-                                }
-                            }}
-                            disabled={isLoading}
-                            className="font-mono text-sm"
-                        />
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <Shield className="size-3.5 shrink-0" />
-                            <span>
-                                For security, the saved API key is never shown.
-                                Leave this blank to keep your current key, or
-                                enter a new key to replace it.
-                            </span>
-                        </div>
-                    </div>
+                    <ApiKeyInputSection
+                        apiKey={apiKey}
+                        setApiKey={setApiKey}
+                        providerName={providerName}
+                        setProviderName={setProviderName}
+                        selectedPreset={selectedPreset}
+                        isLoading={isLoading}
+                    />
 
-                    <div className="space-y-2">
-                        <Label htmlFor="baseUrl">Base URL (Optional)</Label>
-                        <Input
-                            id="baseUrl"
-                            type="text"
-                            placeholder="https://api.example.com/v1"
-                            value={baseUrl}
-                            onChange={(e) => {
-                                setBaseUrl(e.target.value);
-                                if (!providerName) {
-                                    setProviderName("Custom");
-                                }
-                            }}
-                            disabled={isLoading}
-                            className="font-mono text-sm"
-                        />
-                        {isHosted && (
-                            <p className="text-xs text-muted-foreground">
-                                We can&apos;t reach{" "}
-                                <code className="font-mono">localhost</code> or
-                                other private addresses from the hosted app. To
-                                use LM Studio or Ollama, self-host Mesynx AI (
-                                <code className="font-mono">
-                                    docker compose up
-                                </code>
-                                ).
-                            </p>
-                        )}
-                        <button
-                            type="button"
-                            onClick={handleTestConnection}
-                            disabled={isTesting || (!providerName && !baseUrl)}
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                        >
-                            {isTesting ? (
-                                <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                                <Plug className="size-3" />
-                            )}
-                            {isTesting ? "Testing..." : "Test Connection"}
-                        </button>
-                        {testResult && (
-                            <div
-                                className={`flex items-start gap-2 rounded-md border p-2 text-xs ${
-                                    testResult.ok
-                                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                        : "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
-                                }`}
-                            >
-                                {testResult.ok ? (
-                                    <CheckCircle2 className="size-3.5 shrink-0 mt-0.5" />
-                                ) : (
-                                    <XCircle className="size-3.5 shrink-0 mt-0.5" />
-                                )}
-                                <span>{testResult.message}</span>
-                            </div>
-                        )}
-                    </div>
+                    <BaseUrlInputSection
+                        baseUrl={baseUrl}
+                        setBaseUrl={setBaseUrl}
+                        providerName={providerName}
+                        setProviderName={setProviderName}
+                        isLoading={isLoading}
+                        isHosted={isHosted}
+                        isTesting={isTesting}
+                        handleTestConnection={handleTestConnection}
+                        testResult={testResult}
+                    />
 
                     <TranscriptionModelPicker
                         preset={selectedPreset}
@@ -413,31 +547,13 @@ export function EditProviderDialog({
                         discoveredModels={discoveredModels}
                     />
 
-                    <Panel variant="inset" className="space-y-2 text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={isDefaultTranscription}
-                                onChange={(e) =>
-                                    setIsDefaultTranscription(e.target.checked)
-                                }
-                                disabled={isLoading}
-                            />
-                            <span>Use for transcription</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={isDefaultEnhancement}
-                                onChange={(e) =>
-                                    setIsDefaultEnhancement(e.target.checked)
-                                }
-                                disabled={isLoading}
-                            />
-                            <span>Use for AI enhancements</span>
-                        </label>
-                    </Panel>
-
+                    <DefaultUsagePanel
+                        isDefaultTranscription={isDefaultTranscription}
+                        setIsDefaultTranscription={setIsDefaultTranscription}
+                        isDefaultEnhancement={isDefaultEnhancement}
+                        setIsDefaultEnhancement={setIsDefaultEnhancement}
+                        isLoading={isLoading}
+                    />
                     <div className="flex gap-2">
                         <MetalButton
                             type="button"
