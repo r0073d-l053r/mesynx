@@ -78,10 +78,46 @@ and its binary must exist in the image.** Before trusting any healthcheck:
 docker exec <container> command -v curl   # or whatever the check invokes
 ```
 
-## Enabling WhisperX (diarization)
+## Breaking: the bundled `whisper` service is gone
 
-WhisperX is optional and GPU-only; it stays behind the `gpu` compose profile,
-so nothing changes for CPU-only installs. To turn it on:
+WhisperX supersedes it — same transcription, plus forced alignment and speaker
+diarization — and running both meant two model sets competing for one GPU, so
+the older service was removed from `docker-compose.yml`.
+
+**This makes a GPU a hard requirement for transcription.** There is no CPU
+image for WhisperX. If you were running the CPU `whisper` service on a machine
+without a GPU, stay on the previous release.
+
+**Affects every install whose transcription provider points at
+`http://whisper:8000/v1`.** Nothing warns you: the stack comes up healthy and
+the provider row still looks correct in Settings. The first sign is a failed
+transcription, because the hostname no longer resolves.
+
+Check before upgrading:
+
+```bash
+docker compose exec db psql -U postgres -d mesynx-ai \
+  -c "SELECT id, nickname, base_url FROM api_credentials WHERE base_url LIKE '%whisper:%';"
+```
+
+Any row returned needs repointing to `http://whisperx:8000/v1` with model
+`large-v3-turbo-diarize`. Do it in **Settings → AI Providers**, not by hand:
+`api_credentials.api_key` is decrypted through a non-plaintext-tolerant path,
+so a row written by raw SQL fails with `Could not decrypt the API key` and a
+400 on every generate.
+
+The old `whisper_cache` volume is left on disk so an upgrade never destroys
+downloaded models. Reclaim it once the new stack works:
+
+```bash
+docker volume ls | grep whisper_cache
+docker volume rm <project>_whisper_cache
+```
+
+## Setting up WhisperX
+
+WhisperX starts with a plain `docker compose up -d` — it is no longer behind a
+compose profile. Two prerequisites:
 
 1. **Accept the pyannote licence** at
    [hf.co/pyannote/speaker-diarization-community-1](https://hf.co/pyannote/speaker-diarization-community-1),
@@ -103,7 +139,7 @@ so nothing changes for CPU-only installs. To turn it on:
 3. **Start it** and point a provider at it:
 
    ```bash
-   docker compose --profile gpu up -d
+   docker compose up -d
    ```
 
    In **Settings → AI Providers**, set the base URL to
@@ -115,7 +151,7 @@ so nothing changes for CPU-only installs. To turn it on:
 
 ### Sizing `BATCH_SIZE`
 
-The single biggest driver of GPU memory. The default is now **8** (was 16).
+The single biggest driver of GPU memory. The default is **4**, sized for an 8 GB card.
 
 | VRAM | `WHISPERX_BATCH_SIZE` |
 | ---- | --------------------- |

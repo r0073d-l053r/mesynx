@@ -47,7 +47,8 @@ jobs:
     # here; reinstate a pinned test once releases ship docker-compose.yml +
     # env.example.) Leaving the {{VERSION}} placeholder makes install.sh fetch
     # config from raw.githubusercontent main and bring up the CPU core stack;
-    # whisperx sits behind the `gpu` profile and is skipped.
+    # whisperx is GPU-only; this smoke test has no GPU, so it is expected
+    # to be created but not become healthy.
     #
     # On pull_request this installs main's published artifacts (raw main does
     # not reflect the PR), so it validates installer mechanics rather than the

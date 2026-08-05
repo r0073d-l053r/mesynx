@@ -73,7 +73,7 @@ whisper:
             capabilities: [gpu]
 ```
 
-Then point a provider's **Base URL** at it — `http://whisper:8000/v1` from inside Compose, or `http://<host>:8397/v1` from another machine on your network.
+Then point a provider's **Base URL** at it — `http://whisperx:8000/v1` from inside Compose, or `http://<host>:8398/v1` from another machine on your network — with model `large-v3-turbo-diarize`.
 
 ```mermaid
 flowchart LR
