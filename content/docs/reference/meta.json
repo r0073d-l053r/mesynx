@@ -1,6 +1,7 @@
 {
     "title": "Reference",
     "pages": [
+        "index",
         "architecture",
         "public-api",
         "encryption-at-rest",

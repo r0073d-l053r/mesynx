@@ -15,6 +15,8 @@ This is **server-held-key envelope encryption.** It is not zero-knowledge.
 |---|---|---|
 | `recordings.filename` | text | Often carries topic info (e.g. AI-generated titles) |
 | `transcriptions.text` | text | Full transcript |
+| `transcriptions.speaker_names` | jsonb | Real names you assign to diarized speakers. `{ "c": "v1:..." }` envelope |
+| `transcriptions.workspace_nodes` | jsonb | Saved workspace tree — labels and section summaries are user-authored prose. Same envelope |
 | `ai_enhancements.summary` | text | LLM summary |
 | `ai_enhancements.key_points` | jsonb | Stored as `{ "c": "v1:..." }` envelope |
 | `ai_enhancements.action_items` | jsonb | Same envelope shape |

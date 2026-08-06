@@ -1,0 +1,94 @@
+---
+title: Speakers and diarization
+description: Separate who said what, name each speaker once, and have that name appear everywhere.
+---
+
+Diarization splits a recording into **who spoke when**. Mesynx AI renders those
+segments as labelled blocks, lets you name each speaker, and propagates the
+name to every surface at once — transcript, summary prose, key points, action
+items, and the workspace.
+
+## Turning it on
+
+Diarization runs on WhisperX. See
+[Transcription server](/docs/self-hosting/whisper-server) for the setup — it
+needs a GPU, a Hugging Face token, and one small patch.
+
+Once WhisperX is configured as a provider, request diarization by choosing a
+model whose name ends in **`-diarize`**:
+
+```
+large-v3-turbo-diarize
+```
+
+That suffix is the whole trigger. Any transcription model containing
+`diarize` routes through the alignment and diarization pipeline; anything else
+transcribes normally.
+
+## Naming a speaker
+
+A diarized transcript opens with generic labels — `Speaker 1`, `Speaker 2` —
+derived from first appearance.
+
+Click any speaker label, type a name, press Enter. That's it. The same control
+appears in three places and all of them write the same record:
+
+- the **legend** at the top of the transcript
+- the label beside **any individual run** of speech
+- any speaker chip in the **workspace** detail pane
+
+You never have to find "the right place" to rename someone.
+
+## Why the rename reaches everywhere
+
+This is the part worth understanding, because it explains a limitation further
+down.
+
+Mesynx AI stores the **raw diarization id** — `SPEAKER_00`, `SPEAKER_01` —
+everywhere: in the transcript, in generated summaries, in key points, in
+workspace node labels and tags. Your chosen names live in exactly one place, a
+map on the transcription record. Names are substituted **at render time**.
+
+That single decision is what makes a rename:
+
+- **retroactive** — it updates text written before you chose the name,
+  including summaries generated weeks earlier
+- **repeatable** — rename again and everything follows again, because nothing
+  was ever frozen
+- **reversible** — clear the name and the raw id comes back
+
+The summary model is deliberately shown the raw ids too. If it were handed
+"Alice" at generation time, that name would be baked into the prose forever and
+no later rename could reach it.
+
+## What resolution handles
+
+| You see | Renders as |
+| --- | --- |
+| `SPEAKER_01: hello` | `Brandon: hello` |
+| `speaker_1: hello` | `Brandon: hello` (case-insensitive) |
+| `SPEAKER_001` | `Brandon` (zero-padding tolerant) |
+| `SPEAKER_03 and SPEAKER_01 disagreed` | both resolved in one pass |
+| `Notes from SPEAKER_01's demo` | `Notes from Brandon's demo` |
+| `SPEAKER_07` (never named) | left exactly as-is |
+
+## Two things that will surprise you
+
+**Names are cleared when you re-transcribe.** A fresh diarization run assigns
+`SPEAKER_NN` ids arbitrarily — the person who was `SPEAKER_00` last time may be
+`SPEAKER_02` now. Keeping the old map would confidently attach real names to
+the wrong people, so it is discarded. Re-naming after a re-transcribe is
+deliberate, not a bug.
+
+**Summaries generated before this feature shipped will not follow renames.**
+Those had names written directly into the prose, so there is no `SPEAKER_NN`
+token left to resolve. Regenerating the summary fixes an individual recording.
+
+## Unattributed speech
+
+Roughly 5% of segments on real audio come back with no speaker — filler,
+crosstalk, overlapping speech. These render as **plain continuation text**
+under the previous speaker rather than being labelled or dropped.
+
+If you see the literal word `null:` at the start of transcript lines, you are
+running a build from before this was fixed; upgrade.

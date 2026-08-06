@@ -17,7 +17,7 @@
 
 ---
 
-> **Mesynx AI is a self-hosting-first distribution of [Riffado](https://github.com/riffado/riffado)** (which was formerly *OpenPlaud*). It tracks Riffado's core and adds first-class **self-hosted GPU transcription**, a redesigned **Memory Map**, and hardened **AI-provider management**. Same AGPL-3.0 license as its upstream. [See exactly what's different ↓](#whats-new-in-mesynx-ai-vs-riffado)
+> **Mesynx AI is a self-hosting-first distribution of [Riffado](https://github.com/riffado/riffado)** (which was formerly *OpenPlaud*). It tracks Riffado's core and adds first-class **self-hosted GPU transcription with speaker diarization**, an **editable transcription workspace**, and hardened **AI-provider management**. Same AGPL-3.0 license as its upstream. [See exactly what's different ↓](#whats-new-in-mesynx-ai-vs-riffado)
 
 Mesynx AI is an open-source companion app for AI voice recorders. It syncs your recordings from the manufacturer's cloud, transcribes them with any OpenAI-compatible API — **a remote provider, the browser for free, or your own GPU** — and stores everything on infrastructure you control. **Currently supports the Plaud Note family — Note, Note Pro, and NotePin. More device support on the way.** AGPL-3.0.
 
@@ -25,8 +25,9 @@ Mesynx AI is an open-source companion app for AI voice recorders. It syncs your 
 
 ## Features
 
-- **Self-hosted GPU transcription** — a bundled [faster-whisper](https://github.com/SYSTRAN/faster-whisper) service (NVIDIA), turnkey in Docker Compose. No external API required. *(New in Mesynx AI.)*
-- **Interactive Memory Map** — every recording's summary, key points, and action items as a navigable mind-map. *(Redesigned in Mesynx AI.)*
+- **Self-hosted GPU transcription with diarization** — a bundled [WhisperX](https://github.com/etalab-ia/whisperx-openai-api) service (NVIDIA), turnkey in Docker Compose. Transcription, forced alignment, and *who spoke when*. No external API required. *(New in Mesynx AI.)*
+- **Speaker names that propagate** — name a speaker once, anywhere, and it appears in the transcript, the summary prose, key points, action items, and the workspace. Renaming stays retroactive because raw ids are what get stored. *(New in Mesynx AI.)*
+- **Editable transcription workspace** — reshape a recording's summary into a tree you own, viewed three ways: a hand-arranged mind map, an Obsidian-style force graph, and an indented outline. Every section carries the transcript that supports it. *(New in Mesynx AI.)*
 - Works with any OpenAI-compatible provider — OpenAI, Groq, OpenRouter, Together, LM Studio, Ollama, Azure, anything with a `baseURL`.
 - Free browser transcription via Transformers.js (Whisper in WebAssembly).
 - Self-hosted. Your recordings, your storage, your API keys.
@@ -43,9 +44,10 @@ Everything Riffado does, Mesynx AI does too — these are the changes layered on
 
 | Area | Riffado | Mesynx AI |
 | --- | --- | --- |
-| **Transcription backend** | Bring-your-own OpenAI-compatible API | **+ Bundled self-hosted GPU Whisper** service (NVIDIA), turnkey in `docker-compose.yml` |
-| **Local AI servers** | Chat / text only (Ollama, Open WebUI) — `405` on `/v1/audio/transcriptions` | Real `/v1/audio/transcriptions` via faster-whisper — **your local box can finally transcribe** |
-| **Memory Map** | None | **Interactive mind-map** — hover-to-trace a branch, click a node to expand, full-screen modal |
+| **Transcription backend** | Bring-your-own OpenAI-compatible API | **+ Bundled self-hosted GPU WhisperX** (NVIDIA), turnkey in `docker-compose.yml` |
+| **Local AI servers** | Chat / text only (Ollama, Open WebUI) — `405` on `/v1/audio/transcriptions` | Real `/v1/audio/transcriptions` via WhisperX — **your local box can finally transcribe** |
+| **Speaker diarization** | None | **Who spoke when**, with click-to-rename labels that propagate to every surface |
+| **Summary view** | Static text | **Editable workspace** — mind map, force graph, and outline over one tree, with transcript evidence under every section |
 | **Provider setup** | Provider + key + model | **+ Nickname** per server · **+ searchable model picker** (auto-discovered on *Test Connection*) |
 | **Provider reliability** | Saved configs occasionally failed to load / lost the key on open | Section self-loads with a spinner; **configs and keys load reliably** |
 | **Brand** | Riffado (formerly OpenPlaud) | **Mesynx AI** |
@@ -54,46 +56,65 @@ Everything Riffado does, Mesynx AI does too — these are the changes layered on
 
 Riffado expects an OpenAI-compatible transcription endpoint. The catch: popular *local* AI servers like **Ollama** and **Open WebUI** only implement chat/completions — they return **`405 Method Not Allowed`** on `/v1/audio/transcriptions`, so they can't transcribe audio at all.
 
-Mesynx AI closes that gap by bundling a GPU [faster-whisper](https://github.com/fedirz/faster-whisper-server) service that speaks the OpenAI audio API natively:
+Mesynx AI closes that gap by bundling a GPU [WhisperX](https://github.com/etalab-ia/whisperx-openai-api) service that speaks the OpenAI audio API natively — and adds forced alignment and speaker diarization on top:
 
 ```yaml
 # docker-compose.yml (already included)
-whisper:
-  image: fedirz/faster-whisper-server:latest-cuda
-  container_name: mesynx-whisper
+whisperx:
+  image: ghcr.io/etalab-ia/whisperx-openai-api:latest
+  container_name: mesynx-whisperx
   restart: unless-stopped
   ports:
-    - "8397:8000"
+    - "8398:8000"
+  environment:
+    - HF_TOKEN=${HF_TOKEN:-}          # required; see setup below
+    - BATCH_SIZE=${WHISPERX_BATCH_SIZE:-4}
   deploy:
     resources:
       reservations:
         devices:
           - driver: nvidia
-            count: all
+            device_ids: ["0"]
             capabilities: [gpu]
 ```
 
-Then point a provider's **Base URL** at it — `http://whisperx:8000/v1` from inside Compose, or `http://<host>:8398/v1` from another machine on your network — with model `large-v3-turbo-diarize`.
+Then point a provider's **Base URL** at it — `http://whisperx:8000/v1` from inside Compose, or `http://<host>:8398/v1` from another machine on your network — with model `large-v3-turbo-diarize`. The `-diarize` suffix is what requests speaker separation.
 
 ```mermaid
 flowchart LR
     P["Plaud Cloud"] -->|sync| M["Mesynx AI"]
-    M -->|"/v1/audio/transcriptions"| W["faster-whisper · NVIDIA GPU<br/>(self-hosted, :8397)"]
+    M -->|"/v1/audio/transcriptions"| W["WhisperX · NVIDIA GPU<br/>(self-hosted, :8398)<br/>transcribe + align + diarize"]
     M -->|"/v1/chat/completions"| L["Your LLM<br/>(summaries / enhancements)"]
     M --> S["Your storage<br/>(local or S3)"]
 ```
 
-Running it on a separate GPU box is supported too — see [`whisper-server/`](whisper-server/) for a standalone compose file plus **model selection and anti-hallucination (VAD) guidance** for long recordings.
+> **A GPU is required.** There is no CPU image for WhisperX. Setup also needs a Hugging Face token (the diarization models are gated) and a one-time `./patches/apply.sh`. The [transcription server guide](https://github.com/r0073d-l053r/mesynx/blob/main/content/docs/self-hosting/whisper-server.mdx) walks through both — the one-line installer handles them for you.
 
-### 🧠 Interactive Memory Map
+Running it on a separate GPU box is supported too — see [`whisper-server/`](whisper-server/) for a standalone compose file.
 
-Each recording's AI summary becomes a navigable mind-map — **Overview**, **Key Points**, and **Action Items** branch out from the title, color-coded per branch. Hover any node to trace its lineage; click a leaf to expand the full text; hit **Show full map** for a focused, full-screen view. The layout engine was rebuilt to eliminate the label overlap from Riffado's version.
+### 🗣️ Speaker diarization, with names that stick
 
-![Mesynx AI Memory Map](.github/assets/memory-map.png)
+Diarized transcripts arrive split by speaker. Click any label, type a name, and it appears **everywhere at once** — transcript, summary prose, key points, action items, workspace nodes, tags, breadcrumbs.
+
+That works because Mesynx AI stores the raw `SPEAKER_NN` ids and resolves names only when rendering. So a rename is retroactive — it reaches summaries generated weeks ago — and repeatable, because nothing was ever frozen into the text. The summary model is deliberately shown the raw ids for the same reason.
+
+See [Speakers and diarization](https://github.com/r0073d-l053r/mesynx/blob/main/content/docs/guides/speakers-and-diarization.mdx).
+
+### 🧠 Editable transcription workspace
+
+Each recording's AI summary becomes a **tree you can edit**, not a static block of text — rename, regroup, split, delete — with three views over the same data:
+
+- **Mind map** — hand-arranged cards you drag where you want them; positions persist.
+- **Graph** — an Obsidian-style force graph that solves and then *freezes*, so it never drifts while you read it. Drag a node and neighbours flow around it; release and it pins where you dropped it.
+- **Document** — the same tree as an inline-editable outline.
+
+Selecting a node opens a detail pane with a clickable breadcrumb, its connections, and **the transcript that supports it** — grouped by which child owns each run, so you can go from a summary claim to the words behind it.
+
+See [Transcription workspace](https://github.com/r0073d-l053r/mesynx/blob/main/content/docs/guides/transcription-workspace.mdx).
 
 ### 🔌 Hardened AI provider management
 
-- **Nickname any server.** Custom and self-hosted endpoints get a friendly label — "Home GPU · faster-whisper" is a lot easier to manage than a bare IP address.
+- **Nickname any server.** Custom and self-hosted endpoints get a friendly label — "Home GPU · WhisperX" is a lot easier to manage than a bare IP address.
 - **Searchable model picker.** Hit **Test Connection** and Mesynx AI queries the server's `/v1/models` endpoint, then replaces the blank text field with a live type-to-filter dropdown. No more guessing exact model IDs.
 - **Reliable loading.** The Providers section self-fetches on open with a loading state, fixing the race condition in Riffado where saved configs — or their API keys — sometimes failed to appear.
 
@@ -193,4 +214,4 @@ AGPL-3.0 — see [LICENSE](LICENSE). Free to use, modify, and self-host. If you 
 
 ## Acknowledgments
 
-Built on **[Riffado](https://github.com/riffado/riffado)** (originally *OpenPlaud*), created by **Perier** and its contributors. Mesynx AI extends that work with self-hosted GPU transcription, the redesigned Memory Map, and provider-management improvements.
+Built on **[Riffado](https://github.com/riffado/riffado)** (originally *OpenPlaud*), created by **Perier** and its contributors. Mesynx AI extends that work with self-hosted GPU transcription and diarization, the editable transcription workspace, and provider-management improvements.
