@@ -1,8 +1,11 @@
 {
     "title": "Guides",
     "pages": [
+        "index",
         "connect-plaud-account",
         "ai-providers",
+        "speakers-and-diarization",
+        "transcription-workspace",
         "notifications",
         "automation-and-webhooks",
         "backup-and-restore"

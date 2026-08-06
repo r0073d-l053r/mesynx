@@ -53,6 +53,20 @@ these headers, leave the value unset.
 See [S3-compatible storage](./storage-s3) for per-provider
 config templates.
 
+## Transcription (WhisperX)
+
+Read by Docker Compose, not the app. Transcription is **GPU-only** — there
+is no CPU image for WhisperX. Full setup:
+[Transcription server](./whisper-server).
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `HF_TOKEN` | — | **Required.** The pyannote diarization models are gated: accept the licence at [pyannote/speaker-diarization-community-1](https://hf.co/pyannote/speaker-diarization-community-1), then create a **read**-scope token. Without it the container fails on a `401` at startup and idles with a message rather than crash-looping — but it will not transcribe. |
+| `WHISPERX_API_KEY` | `sk-placeholder` | Key WhisperX requires on every request. Must match what you enter in **Settings → AI Providers**. |
+| `WHISPERX_MODEL` | `large-v3-turbo` | Base transcription model. Append `-diarize` to the model name *in the app* to request speaker diarization. |
+| `WHISPERX_BATCH_SIZE` | `4` | Biggest driver of GPU memory. 4 on 8 GB, 8 on 12 GB, 16+ above. Too high surfaces as `CUDA failed with error out of memory` in the whisperx logs, while the app shows only a bare `500`. |
+| `WHISPERX_ALIGN_LANGUAGES` | `["en"]` | Alignment models preloaded at boot. The image default preloads en/fr/nl/de (~4.1 GB resident); English-only is ~0.4 GB. Other languages still work — their model loads on demand for the first request in that language. |
+
 ## SMTP (email notifications)
 
 | Variable        | Default                | Effect                                                                                |

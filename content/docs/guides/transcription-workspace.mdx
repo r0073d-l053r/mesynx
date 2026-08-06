@@ -1,0 +1,111 @@
+---
+title: Transcription workspace
+description: Reshape a recording's summary into a tree you own — as a mind map, a force graph, or an outline.
+---
+
+Every recording's summary starts as a generated tree: an overview, key points,
+action items. The workspace lets you **edit that tree** — rename, reorder,
+regroup, split, delete — and view it three ways. Open it with **Open
+workspace** in the summary panel.
+
+All three views are the same data. Edit in one, the others follow.
+
+## Mind map
+
+Hand-arranged cards on a canvas, with the detail pane alongside.
+
+- **Drag** a card to place it. Positions are saved.
+- **Hover** a card and click **+** to add a child, inheriting the parent's
+  colour.
+- **Click** a card to load it into the detail pane.
+
+Cards are keyboard-reachable — selecting one is the only route to the detail
+pane, so a pointer-only card would make reading, editing and deleting a section
+impossible without a mouse.
+
+## Graph
+
+A force-directed graph on canvas, modelled on Obsidian's.
+
+The behaviour that matters most: **it solves and then freezes.** The layout is
+computed to rest before the first frame is drawn, so switching to this view
+never shows a graph drifting into place. Nothing moves unless you move it.
+
+- **Drag** a node and the simulation warms up so neighbours flow around it.
+  Release and the node **pins where you dropped it**.
+- **Release pinned & re-solve** undoes that.
+- **Hover** a node to light up its neighbours and dim everything else.
+- Node **radius encodes subtree size**, not link count — so the root reads as
+  the largest node rather than the smallest.
+
+Graph positions are deliberately **not** saved. That field belongs to the
+hand-arranged mind map. Obsidian does not save graph coordinates either.
+
+## Document
+
+The same tree as a recursive, indented outline. Titles and summaries are
+editable inline; the summary box grows as you type. Hover a row to reveal a
+delete that requires a second click.
+
+Best view for reading top to bottom or restructuring quickly.
+
+## The detail pane
+
+Shared by the mind map and graph, this is where drilling down happens. For the
+selected node it shows:
+
+- a **breadcrumb** back to the root, every crumb clickable
+- **Connections** — the parent and every child, with sub-counts and segment
+  counts, each one clickable to narrow further
+- **Transcript** — not just this node's own segments, but everything beneath
+  it, grouped by which child owns each run
+- **Speaker labels that double as rename controls** (see
+  [Speakers and diarization](/docs/guides/speakers-and-diarization))
+
+Edit mode covers the title, summary, time range, tags, colour, and full
+create/edit/delete on transcript chunks.
+
+Deletes are recursive, and the confirmation counts **descendants** rather than
+direct children — understating the blast radius on an irreversible action is
+worse than not confirming at all.
+
+## How transcript segments get attached
+
+Sections carry the transcript that supports them, so you can go from a summary
+claim to the words behind it.
+
+Pure keyword matching is not enough on real audio. Measured on a 27-minute
+workshop transcript, matching summary text against transcript lines plateaus at
+**34% coverage even with the relevance threshold at zero** — most conversation
+is "yeah, exactly" and "right, so…", which shares no vocabulary with any
+summary point.
+
+So it works in two passes:
+
+1. High-confidence matches become **anchors**.
+2. Every remaining segment joins the **nearest anchor by position**, because
+   conversation is sequential — filler between two anchors belongs to whatever
+   was being discussed around it.
+
+That reaches **100% coverage in 25 contiguous runs**, so each section reads as
+a stretch of conversation rather than scattered fragments.
+
+This is lexical and positional, not temporal. Segment start/end times are not
+currently persisted, so real time-based chaptering is not yet possible.
+
+## Saving, and the Rebuild button
+
+Edits save automatically, debounced, and flush when you close the workspace.
+The server re-validates the whole tree on write rather than trusting the
+browser — including an explicit cycle check, because a cycle would hang the
+outline view on the *next* read and turn one bad write into a recording you
+could never open again.
+
+A **saved workspace always wins over a freshly derived one.** That preserves
+your arrangement, but it also means a recording you have arranged once will
+never pick up later improvements to how trees are derived.
+
+**Rebuild** discards the saved copy and re-derives from the current summary.
+Your arrangement is lost; the generated structure comes back current. Node
+labels and summaries are *not* cleared on re-transcription, because they are
+prose you wrote.
