@@ -291,6 +291,12 @@ export async function transcribeRecording(
                             transcriptionType: "server",
                             provider: credentials.provider,
                             model,
+                            // A fresh diarization run reassigns SPEAKER_NN
+                            // ids arbitrarily, so any custom names keyed to
+                            // the old ids would confidently label the wrong
+                            // people. Clear them; the user renames again on
+                            // the new transcript.
+                            speakerNames: null,
                         })
                         .where(
                             and(

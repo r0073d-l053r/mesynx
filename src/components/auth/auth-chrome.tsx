@@ -197,7 +197,7 @@ function InstanceFooter() {
         <div className="flex justify-center text-[11px] text-muted-foreground/50 font-mono">
             <div className="flex items-center gap-4">
                 <Link
-                    href="https://mesynx.r0073dl053r.com/"
+                    href="https://mesynx.jewell-net.com/docs"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-muted-foreground transition-colors"
@@ -219,7 +219,7 @@ function InstanceFooter() {
                     ·
                 </span>
                 <Link
-                    href="https://discord.gg/mgBKaEGUvc"
+                    href="/discord"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-muted-foreground transition-colors"

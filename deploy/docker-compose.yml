@@ -14,12 +14,11 @@
 # Upgrade:
 #   docker compose pull && docker compose up -d
 #
-# GPU note: this stack is CPU-only by default — `whisper` uses the CPU image
-# and `whisperx` (GPU-only diarization) is gated behind the `gpu` profile, so
-# it is not pulled or started unless you ask for it. To opt into GPU after the
-# core stack is up (requires the NVIDIA Container Toolkit on the host):
-#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile gpu up -d
-# That upgrades `whisper` to the CUDA image with GPU access and starts whisperx.
+# GPU REQUIRED: transcription runs on WhisperX, which has no CPU image. You
+# need an NVIDIA GPU with the Container Toolkit installed and configured
+# (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/), plus an
+# HF_TOKEN in .env after accepting the pyannote licence. There is no CPU-only
+# path since the faster-whisper-server `whisper` service was removed.
 
 services:
   db:
@@ -93,42 +92,18 @@ services:
     networks:
       - mesynx-network
 
-  whisper:
-    # CPU by default so the core stack runs on any host. For GPU acceleration,
-    # opt in via docker-compose.gpu.yml (see the GPU note at the top of this
-    # file) — it overrides this to the CUDA image and adds a GPU reservation.
-    image: ${WHISPER_IMAGE:-fedirz/faster-whisper-server:latest-cpu}
-    container_name: mesynx-whisper
-    restart: unless-stopped
-    ports:
-      - "8397:8000"
-    environment:
-      # VAD eliminates hallucinations on recordings with pauses.
-      # Set to false only if VAD clips real speech at the start of sentences.
-      WHISPER__VAD_ENABLED: "true"
-      # Raise the upload cap — 10 MB (default) is too small for recordings
-      # longer than ~15 min at standard bitrate.
-      WHISPER__MAX_AUDIO_FILE_SIZE_MB: "500"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/v1/models" ]
-      interval: 30s
-      timeout: 5s
-      start_period: 60s
-      retries: 3
-    volumes:
-      # Persist downloaded Whisper models (large-v3 is ~3 GB).
-      - whisper_cache:/root/.cache/huggingface
-    networks:
-      - mesynx-network
-
+  # WhisperX: transcription + forced alignment + speaker diarization, over an
+  # OpenAI-compatible API. The only transcription service — the bundled
+  # faster-whisper-server was removed 2026-08-04 (WhisperX supersedes it, and
+  # running both meant two model sets competing for one card).
+  #
+  # GPU REQUIRED: there is no CPU image for this service. Two prerequisites:
+  #   1. accept https://hf.co/pyannote/speaker-diarization-community-1
+  #   2. set HF_TOKEN=hf_... (read scope) in .env
+  # The entrypoint guard idles with a clear message if the token is missing,
+  # rather than crash-looping on a gated-repo 401.
   whisperx:
-    # WhisperX: forced-alignment + speaker diarization. GPU only — no CPU image.
-    # Gated behind the `gpu` profile: not pulled or started unless you run with
-    # `--profile gpu` (see the GPU note at the top of this file).
-    # To enable diarization, set HF_TOKEN and accept the pyannote licence:
-    # https://hf.co/pyannote/speaker-diarization-community-1
     image: ghcr.io/etalab-ia/whisperx-openai-api:latest
-    profiles: ["gpu"]
     container_name: mesynx-whisperx
     restart: unless-stopped
     ports:
@@ -137,22 +112,50 @@ services:
       - API_KEY=${WHISPERX_API_KEY:-sk-placeholder}
       - HF_TOKEN=${HF_TOKEN:-}
       - TRANSCRIBE_MODEL=${WHISPERX_MODEL:-large-v3-turbo}
-      - BATCH_SIZE=${WHISPERX_BATCH_SIZE:-16}
+      # Dominant driver of activation memory. Measured: batch 8 overflows an
+      # 8 GB card on a 17-minute file. Use 4 on 8 GB, 8 on 12 GB, 16+ above.
+      - BATCH_SIZE=${WHISPERX_BATCH_SIZE:-4}
+      # Stops fragmentation creep on long-lived containers (observed 2.6 GB →
+      # 6.5 GB over ~17 h of uptime, then OOM mid-transcription).
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      # Image default preloads en/fr/nl/de (~4.1 GB). English-only is ~0.4 GB;
+      # other languages still load on demand for their first request.
+      - PRELOADED_ALIGN_MODEL_LANGUAGES=${WHISPERX_ALIGN_LANGUAGES:-["en"]}
+    entrypoint:
+      - sh
+      - -c
+      - >
+        if [ -z "$$HF_TOKEN" ]; then
+        echo "HF_TOKEN is empty — accept https://hf.co/pyannote/speaker-diarization-community-1 and set HF_TOKEN in .env, then restart.";
+        sleep infinity;
+        fi;
+        exec gunicorn main:app --workers $${WORKERS:-1} --worker-class uvicorn.workers.UvicornWorker --timeout 120 --bind 0.0.0.0:$${PORT:-8000}
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              # Pinned to device 0 so a resident LLM on another card cannot
+              # contend for the same GPU. Correct on single-GPU hosts too.
+              device_ids: [ "0" ]
               capabilities: [ gpu ]
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/v1/models" ]
+      # This image ships no curl, so a curl check can never pass — the
+      # container reports unhealthy forever and any restart-on-unhealthy
+      # supervisor loops it, killing long transcriptions. /v1/models needs the
+      # bearer key; /health is unauthenticated. Long start_period because the
+      # first boot downloads pyannote + alignment models.
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=8)" ]
       interval: 30s
-      timeout: 5s
-      start_period: 90s
+      timeout: 10s
+      start_period: 300s
       retries: 5
     volumes:
       - whisperx_cache:/data/models
+      # Accepts "<model>-diarize" as a model alias; without it the server 404s
+      # the very convention the app uses to request diarization. install.sh
+      # fetches this file; otherwise run patches/apply.sh from the repo.
+      - ./patches/whisperx-audio.py:/app/endpoints/audio.py:ro
     networks:
       - mesynx-network
 
@@ -161,8 +164,9 @@ volumes:
     driver: local
   audio:
     driver: local
-  whisper_cache:
-    driver: local
+  # `whisper_cache` was dropped with the whisper service. Any existing volume
+  # is left on disk so an upgrade never destroys downloaded models; reclaim it
+  # with `docker volume rm <project>_whisper_cache`.
   whisperx_cache:
     driver: local
 

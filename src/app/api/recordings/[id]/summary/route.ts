@@ -240,6 +240,15 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
         transcriptText = "[Decryption Failed - Key Mismatch]";
     }
 
+    // NOTE: speaker names are deliberately NOT substituted here.
+    //
+    // The LLM sees the raw `SPEAKER_00:` ids and echoes them into its
+    // summary, key points and action items, which are then resolved to real
+    // names at DISPLAY time by resolveSpeakerTokens(). Baking the name into
+    // the prompt would freeze it into the generated prose forever, so
+    // renaming a speaker afterwards could never update an existing summary —
+    // the whole point of keeping one speaker-name map per transcription.
+
     // Truncate transcription if too long
     const maxLength = 8000;
     const truncatedTranscription =
@@ -286,31 +295,67 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
             },
         ],
         temperature: 0.5,
-        max_tokens: 2000,
+        // Reasoning models (the local `gemma4:26b` default among them) emit
+        // reasoning tokens on a separate channel *before* any content, and
+        // those tokens bill against this same budget. Measured on a real
+        // transcript: reasoning alone consumed a 2000 budget and the request
+        // came back with empty content and `finish_reason: "length"` — a
+        // silently blank summary. 8000 leaves room for both; non-reasoning
+        // models stop at EOS long before reaching it, so the higher ceiling
+        // costs them nothing.
+        max_tokens: 8000,
     });
 
-    const rawContent = response.choices[0]?.message?.content?.trim() || "";
+    const choice = response.choices[0];
+    const rawContent = choice?.message?.content?.trim() || "";
+
+    // `length` means the model was cut off at max_tokens mid-stream, so
+    // whatever arrived is a fragment — either nothing at all (reasoning ate
+    // the entire budget) or half-written JSON. Measured against the old
+    // 2000-token cap on a 12.6k-word transcript: 2000 completion tokens
+    // spent, 88 characters of content, zero key points, zero action items.
+    const truncated = choice?.finish_reason === "length";
 
     // Parse the JSON response
     let summary = "";
     let keyPoints: string[] = [];
     let actionItems: string[] = [];
+    let parsedAsJson = false;
 
-    try {
-        // Strip markdown code fences if present
-        const cleanContent = rawContent
-            .replace(/^```(?:json)?\s*/i, "")
-            .replace(/\s*```$/i, "")
-            .trim();
-        const parsed = JSON.parse(cleanContent);
-        summary = parsed.summary || "";
-        keyPoints = Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [];
-        actionItems = Array.isArray(parsed.actionItems)
-            ? parsed.actionItems
-            : [];
-    } catch {
-        // Fallback: treat entire response as summary text
-        summary = rawContent;
+    if (rawContent) {
+        try {
+            // Strip markdown code fences if present
+            const cleanContent = rawContent
+                .replace(/^```(?:json)?\s*/i, "")
+                .replace(/\s*```$/i, "")
+                .trim();
+            const parsed = JSON.parse(cleanContent);
+            summary = parsed.summary || "";
+            keyPoints = Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [];
+            actionItems = Array.isArray(parsed.actionItems)
+                ? parsed.actionItems
+                : [];
+            parsedAsJson = true;
+        } catch {
+            // Fallback: treat entire response as summary text. Sound only
+            // when the model actually finished — a truncated fragment is
+            // caught by the guard below rather than stored as prose.
+            summary = rawContent;
+        }
+    }
+
+    // Never persist a non-summary. Both failure shapes used to return 200:
+    // empty content fell through the catch above and stored `""`, and a
+    // truncated fragment was stored verbatim. The user saw a blank or
+    // nonsense summary with no indication anything had gone wrong.
+    if (!summary.trim() || (truncated && !parsedAsJson)) {
+        throw new AppError(
+            ErrorCode.AI_PROVIDER_API_ERROR,
+            truncated
+                ? `The model "${model}" hit its token limit before finishing the summary. If it is a reasoning model, its reasoning consumed the budget — try a shorter recording or a non-reasoning model.`
+                : `The model "${model}" returned an empty response.`,
+            502,
+        );
     }
 
     // Atomic tombstone re-check + upsert.

@@ -169,7 +169,7 @@ export default function RebrandPage() {
                             className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <ArrowLeft className="size-3.5" aria-hidden />
-                            Back to mesynx.r0073dl053r.com
+                            Back to Mesynx AI
                         </Link>
                     </p>
                 </article>

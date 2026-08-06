@@ -48,7 +48,7 @@ export function NewRecordingEmail({
                     <Section style={emailStyles.header}>
                         <div style={{ textAlign: "center" }}>
                             <Img
-                                src="https://mesynx.r0073dl053r.com/logo.png"
+                                src="https://raw.githubusercontent.com/r0073d-l053r/mesynx/main/public/icon-192x192.png"
                                 alt="Mesynx AI"
                                 width="32"
                                 height="32"

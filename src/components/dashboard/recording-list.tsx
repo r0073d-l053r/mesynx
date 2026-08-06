@@ -10,6 +10,7 @@ import {
     useRef,
     useState,
 } from "react";
+import { transcriptSnippet } from "@/components/dashboard/command-palette-parts";
 import {
     type PendingUpload,
     PendingUploadRow,
@@ -20,6 +21,7 @@ import {
     type SortOrder,
 } from "@/components/dashboard/recording-list-toolbar";
 import { RecordingRow } from "@/components/dashboard/recording-row";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { dateGroupLabel } from "@/lib/format-date";
 import type { DateTimeFormat } from "@/types/common";
 import type { Recording } from "@/types/recording";
@@ -33,6 +35,8 @@ export type {
 interface TranscriptionData {
     text?: string;
     language?: string;
+    /** Speaker names are resolved into previews, same as everywhere else. */
+    speakerNames?: Record<string, string> | null;
 }
 
 interface RecordingListProps {
@@ -65,21 +69,6 @@ function persistSetting(field: string, value: unknown) {
     }).catch(() => {});
 }
 
-function transcriptSnippet(
-    text: string | undefined,
-    maxChars = 140,
-): string | null {
-    if (!text) return null;
-    const stripped = text
-        .replace(/\[[^\]]+\]/g, " ")
-        .replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    if (!stripped) return null;
-    if (stripped.length <= maxChars) return stripped;
-    return `${stripped.slice(0, maxChars - 1).trimEnd()}\u2026`;
-}
-
 export function RecordingList({
     recordings,
     transcriptions,
@@ -102,6 +91,11 @@ export function RecordingList({
     const [query, setQuery] = useState("");
     const [visibleCount, setVisibleCount] = useState(initialChunkSize);
     const searchRef = useRef<HTMLInputElement>(null);
+    // Group labels (Today / Yesterday / This week) are computed from the
+    // local timezone; the server renders them in UTC. Recomputing once
+    // after mount replaces any label the browser would disagree with.
+    const hydrated = useHydrated();
+
     const sentinelRef = useRef<HTMLDivElement>(null);
     const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -158,6 +152,7 @@ export function RecordingList({
 
     const visible = filtered.slice(0, visibleCount);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: hydrated is not read here but must stay — dateGroupLabel compares against today/yesterday, and the server runs UTC while the browser runs local time, so the post-mount flip is what re-groups correctly.
     const grouped = useMemo(() => {
         if (sortOrder === "name") {
             return [{ label: null as string | null, items: visible }];
@@ -173,7 +168,7 @@ export function RecordingList({
             }
         }
         return groups;
-    }, [visible, sortOrder]);
+    }, [visible, sortOrder, hydrated]);
 
     // Reset visibleCount when the filter changes so search results
     // aren't accidentally truncated.
@@ -281,7 +276,13 @@ export function RecordingList({
                 {grouped.map((group, gi) => (
                     <div key={group.label ?? `__ungrouped-${gi.toString()}`}>
                         {group.label && (
-                            <div className="sticky top-0 z-10 bg-background/90 px-5 pt-4 pb-1.5 text-[10px] font-semibold uppercase leading-none tracking-widest text-muted-foreground/50 backdrop-blur-sm supports-[backdrop-filter]:bg-background/75 font-mono">
+                            // Today/Yesterday depend on the local timezone;
+                            // the server runs UTC and can disagree either
+                            // side of midnight.
+                            <div
+                                suppressHydrationWarning
+                                className="sticky top-0 z-10 bg-background/90 px-5 pt-4 pb-1.5 text-[10px] font-semibold uppercase leading-none tracking-widest text-muted-foreground/50 backdrop-blur-sm supports-[backdrop-filter]:bg-background/75 font-mono"
+                            >
                                 {group.label}
                             </div>
                         )}
@@ -296,6 +297,9 @@ export function RecordingList({
                                     inFlight={inFlightActions.get(recording.id)}
                                     snippet={transcriptSnippet(
                                         transcriptions.get(recording.id)?.text,
+                                        undefined,
+                                        transcriptions.get(recording.id)
+                                            ?.speakerNames,
                                     )}
                                     isCompact={isCompact}
                                     rowPadding={rowPadding}

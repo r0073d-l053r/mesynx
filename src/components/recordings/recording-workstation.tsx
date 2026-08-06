@@ -17,12 +17,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import type { Recording } from "@/types/recording";
 
 interface Transcription {
     text?: string;
     detectedLanguage?: string;
     transcriptionType?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 interface RecordingWorkstationProps {

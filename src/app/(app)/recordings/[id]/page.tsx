@@ -4,7 +4,8 @@ import { RecordingWorkstation } from "@/components/recordings/recording-workstat
 import { db } from "@/db";
 import { recordings, transcriptions, userSettings } from "@/db/schema";
 import { requireAuth } from "@/lib/auth-server";
-import { decryptText } from "@/lib/encryption/fields";
+import { decryptJsonField, decryptText } from "@/lib/encryption/fields";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 
 interface RecordingDetailPageProps {
     params: Promise<{ id: string }>;
@@ -106,6 +107,14 @@ export default async function RecordingDetailPage({
                           detectedLanguage:
                               transcription.detectedLanguage || undefined,
                           transcriptionType: transcription.transcriptionType,
+                          speakerNames:
+                              decryptJsonField<Record<string, string>>(
+                                  transcription.speakerNames,
+                              ) ?? null,
+                          workspaceNodes:
+                              decryptJsonField<SummaryNode[]>(
+                                  transcription.workspaceNodes,
+                              ) ?? null,
                       }
                     : undefined
             }

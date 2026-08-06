@@ -153,12 +153,24 @@ export async function generateTitleFromTranscription(
                 },
             ],
             temperature: 0.7,
-            max_tokens: 50, // Titles should be short
+            // Titles are short, but this budget is not just the title: a
+            // reasoning model spends it on reasoning tokens first and only
+            // then emits content. At 50 such a model returns nothing at all,
+            // so titles silently never generated. The result is truncated to
+            // 60 characters below regardless, and non-reasoning models stop
+            // at EOS after a few tokens, so the headroom is free.
+            max_tokens: 800,
         });
 
-        const title = response.choices[0]?.message?.content?.trim() || null;
+        const choice = response.choices[0];
+        const title = choice?.message?.content?.trim() || null;
 
         if (!title) {
+            if (choice?.finish_reason === "length") {
+                console.error(
+                    `Title generation hit the token limit before producing content (model "${model}"). If this is a reasoning model, raise max_tokens.`,
+                );
+            }
             return null;
         }
 

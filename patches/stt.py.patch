@@ -1,0 +1,27 @@
+--- a/faster_whisper_server/routers/stt.py
++++ b/faster_whisper_server/routers/stt.py
+@@ -193,7 +193,15 @@
+     ] = ["segment"],
+     stream: Annotated[bool, Form()] = False,
+     hotwords: Annotated[str | None, Form()] = None,
+-    vad_filter: Annotated[bool, Form()] = False,
++    # PATCH (mesynx 2026-08-03): VAD now defaults ON. Without it, quiet
++    # wearable recordings collapse into hallucination loops ("Thank you." /
++    # "Yeah." repeated for the whole file).
++    vad_filter: Annotated[bool, Form()] = True,
++    # PATCH (mesynx 2026-08-03): accept condition_on_previous_text so the
++    # client's anti-repeat-loop setting is honored instead of dropped.
++    # Default False = each 30s window decodes with fresh context, so one bad
++    # window cannot cascade into an unrecoverable loop.
++    condition_on_previous_text: Annotated[bool, Form()] = False,
+ ) -> Response | StreamingResponse:
+     if model is None:
+         model = config.whisper.model
+@@ -216,6 +224,7 @@
+             temperature=temperature,
+             vad_filter=vad_filter,
+             hotwords=hotwords,
++            condition_on_previous_text=condition_on_previous_text,
+         )
+         segments = TranscriptionSegment.from_faster_whisper_segments(segments)
+ 

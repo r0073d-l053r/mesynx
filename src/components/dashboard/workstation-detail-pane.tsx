@@ -6,12 +6,17 @@ import { DotGridBackground } from "@/components/dashboard/dot-grid-background";
 import { RecordingPlayer } from "@/components/dashboard/recording-player";
 import { TranscriptionPanel } from "@/components/dashboard/transcription-panel";
 import { Button } from "@/components/ui/button";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { cn } from "@/lib/utils";
 import type { Recording } from "@/types/recording";
 
 interface TranscriptionData {
     text?: string;
     language?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 type DetailTab = "sources" | "notes";

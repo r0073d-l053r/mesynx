@@ -38,12 +38,17 @@ import {
 } from "@/lib/notifications/browser";
 import type { InitialSettings } from "@/lib/settings/initial-settings";
 import { SYNC_CONFIG } from "@/lib/sync-config";
+import type { SummaryNode } from "@/lib/transcription/summary-nodes";
 import { cn } from "@/lib/utils";
 import type { Recording } from "@/types/recording";
 
 interface TranscriptionData {
     text?: string;
     language?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 interface Provider {

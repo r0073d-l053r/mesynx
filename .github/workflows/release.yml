@@ -120,9 +120,11 @@ jobs:
         run: |
           cp .env.example env.example
           cp deploy/docker-compose.yml /tmp/docker-compose.yml
-          # GPU opt-in override, downloaded by install.sh for users who later
-          # enable diarization / CUDA transcription.
-          cp deploy/docker-compose.gpu.yml /tmp/docker-compose.gpu.yml
+          # WhisperX model-alias patch. install.sh fetches both and runs
+          # apply.sh; without them the server 404s the "-diarize" convention
+          # the app uses to request diarization.
+          cp patches/whisperx-audio.py.patch /tmp/whisperx-audio.py.patch
+          cp patches/apply.sh /tmp/apply.sh
           # Provisioning override (mounts the Docker socket) for in-UI GPU
           # management. Opt-in; carries a security trade-off (see its header).
           cp deploy/docker-compose.provisioning.yml /tmp/docker-compose.provisioning.yml
@@ -147,8 +149,9 @@ jobs:
           # without cloning the repo.
           files: |
             /tmp/docker-compose.yml
-            /tmp/docker-compose.gpu.yml
             /tmp/docker-compose.provisioning.yml
+            /tmp/whisperx-audio.py.patch
+            /tmp/apply.sh
             /tmp/install.sh
             env.example
         env:

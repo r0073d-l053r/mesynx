@@ -2,7 +2,7 @@ name: Install Script
 
 # Integration test for the one-line installer. Runs on PRs that touch the
 # installer surface so a regression in `scripts/install.sh` or its routes
-# fails CI before it reaches mesynx.r0073dl053r.com.
+# fails CI before it reaches users.
 
 on:
   push:
@@ -47,7 +47,8 @@ jobs:
     # here; reinstate a pinned test once releases ship docker-compose.yml +
     # env.example.) Leaving the {{VERSION}} placeholder makes install.sh fetch
     # config from raw.githubusercontent main and bring up the CPU core stack;
-    # whisperx sits behind the `gpu` profile and is skipped.
+    # whisperx is GPU-only; this smoke test has no GPU, so it is expected
+    # to be created but not become healthy.
     #
     # On pull_request this installs main's published artifacts (raw main does
     # not reflect the PR), so it validates installer mechanics rather than the

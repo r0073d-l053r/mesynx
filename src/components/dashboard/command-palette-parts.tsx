@@ -17,6 +17,7 @@ import {
 import type { ReactNode } from "react";
 import { type DateTimeFormat, formatDateTime } from "@/lib/format-date";
 import { formatDurationMs } from "@/lib/format-duration";
+import { resolveSpeakerTokens } from "@/lib/transcription/parse-diarized";
 import type { Recording } from "@/types/recording";
 
 export const RECORDING_CAP = 200;
@@ -24,15 +25,27 @@ export const RECORDING_CAP = 200;
 interface TranscriptionData {
     text?: string;
     language?: string;
+    /** Speaker names are resolved into previews, same as everywhere else. */
+    speakerNames?: Record<string, string> | null;
 }
 
-// Mirror of the helper in `recording-list.tsx`; kept local on both sides.
+// Shared by the recording list and the command palette — one
+// implementation so a preview cannot resolve names in one place and not
+// the other.
+/**
+ * One-line transcript preview.
+ *
+ * Resolves raw `SPEAKER_NN` ids to the user's names, like every other
+ * surface — a preview reading "SPEAKER_03: I'm from Boston" is exactly the
+ * inconsistency the single speaker-name map exists to prevent.
+ */
 export function transcriptSnippet(
     text: string | undefined,
     maxChars = 140,
+    speakerNames?: Record<string, string> | null,
 ): string | null {
     if (!text) return null;
-    const stripped = text
+    const stripped = resolveSpeakerTokens(text, speakerNames)
         .replace(/\[[^\]]+\]/g, " ")
         .replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, " ")
         .replace(/\s+/g, " ")
@@ -102,6 +115,8 @@ export function RecordingsGroup({
             {recordings.map((r) => {
                 const snippet = transcriptSnippet(
                     transcriptions.get(r.id)?.text,
+                    undefined,
+                    transcriptions.get(r.id)?.speakerNames,
                 );
                 const inFlight = inFlightActions.get(r.id);
                 const isCurrent = currentRecording?.id === r.id;

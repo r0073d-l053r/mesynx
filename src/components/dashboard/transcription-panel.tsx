@@ -8,15 +8,17 @@ import {
     Languages,
     ListChecks,
     Loader2,
+    Network,
     Pencil,
     RefreshCw,
     Sparkles,
     Trash2,
     X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DiarizedTranscript } from "@/components/dashboard/diarized-transcript";
+import { WorkspaceModal } from "@/components/dashboard/editable-transcription-workspace";
 import { ExportMenu } from "@/components/dashboard/export-menu";
 import { GenerateButton } from "@/components/dashboard/generate-button";
 import {
@@ -27,7 +29,6 @@ import {
     GeneratePipeline,
     type PipelineStage,
 } from "@/components/dashboard/generate-pipeline";
-import { MemoryMap } from "@/components/dashboard/memory-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -39,12 +40,23 @@ import {
 } from "@/components/ui/select";
 import { useTranscriptionSummary } from "@/hooks/use-transcription-summary";
 import { SUMMARY_PRESETS } from "@/lib/ai/summary-presets";
-import { isDiarized } from "@/lib/transcription/parse-diarized";
+import {
+    isDiarized,
+    resolveSpeakerTokens,
+} from "@/lib/transcription/parse-diarized";
+import {
+    deriveNodes,
+    type SummaryNode,
+} from "@/lib/transcription/summary-nodes";
 import type { Recording } from "@/types/recording";
 
 interface Transcription {
     text?: string;
     language?: string;
+    /** Custom diarized-speaker names keyed by raw id, e.g. {"SPEAKER_00": "Alice"}. */
+    speakerNames?: Record<string, string> | null;
+    /** Saved workspace layout; null until the user edits the workspace. */
+    workspaceNodes?: SummaryNode[] | null;
 }
 
 interface TranscriptionPanelProps {
@@ -92,6 +104,162 @@ export function TranscriptionPanel({
     const [editingTranscript, setEditingTranscript] = useState(false);
     const [transcriptEditValue, setTranscriptEditValue] = useState("");
     const [isSavingTranscript, setIsSavingTranscript] = useState(false);
+
+    // ── Editable workspace ───────────────────────────────────────
+    const [workspaceOpen, setWorkspaceOpen] = useState(false);
+
+    // A saved layout always wins; the derived one is only a starting point
+    // for a recording the user has never arranged.
+    const derivedNodes = useMemo(
+        () =>
+            deriveNodes({
+                title: recording.filename ?? "Recording",
+                summary: summaryData?.summary ?? "",
+                keyPoints: summaryData?.keyPoints,
+                actionItems: summaryData?.actionItems,
+                transcriptText: transcription?.text ?? null,
+            }),
+        [
+            recording.filename,
+            summaryData?.summary,
+            summaryData?.keyPoints,
+            summaryData?.actionItems,
+            transcription?.text,
+        ],
+    );
+    const [rebuildKey, setRebuildKey] = useState(0);
+    const savedNodes = transcription?.workspaceNodes;
+    const rebuiltAtRef = useRef(0);
+    const workspaceNodes = useMemo(() => {
+        // A just-rebuilt workspace must show the fresh derivation even if the
+        // parent has not yet refetched and still hands us the old saved copy.
+        if (rebuildKey !== rebuiltAtRef.current) {
+            rebuiltAtRef.current = rebuildKey;
+            return derivedNodes;
+        }
+        return savedNodes?.length ? savedNodes : derivedNodes;
+    }, [savedNodes, derivedNodes, rebuildKey]);
+
+    // Debounced save: the workspace reports every keystroke and every
+    // pointermove of a drag, which would be hundreds of requests a minute.
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingNodesRef = useRef<SummaryNode[] | null>(null);
+
+    const flushWorkspace = useCallback(async () => {
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+        }
+        const nodes = pendingNodesRef.current;
+        if (!nodes) return;
+        pendingNodesRef.current = null;
+        try {
+            const res = await fetch(
+                `/api/recordings/${recording.id}/workspace`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nodes }),
+                },
+            );
+            if (!res.ok) throw new Error("Failed");
+        } catch {
+            toast.error("Couldn't save workspace changes.");
+        }
+    }, [recording.id]);
+
+    const handleWorkspaceChange = useCallback(
+        (nodes: SummaryNode[]) => {
+            pendingNodesRef.current = nodes;
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = setTimeout(() => {
+                void flushWorkspace();
+            }, 900);
+        },
+        [flushWorkspace],
+    );
+
+    /**
+     * Discard the stored arrangement and re-derive. A saved workspace always
+     * wins over `deriveNodes`, so without an explicit escape hatch a
+     * recording arranged once can never pick up improvements to how nodes
+     * and transcript segments are derived.
+     */
+    const rebuildWorkspace = useCallback(async () => {
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+        }
+        pendingNodesRef.current = null;
+        try {
+            const res = await fetch(
+                `/api/recordings/${recording.id}/workspace`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nodes: null }),
+                },
+            );
+            if (!res.ok) throw new Error("Failed");
+            setRebuildKey((n) => n + 1);
+            onGenerated?.();
+            toast.success("Workspace rebuilt from the transcript");
+        } catch {
+            toast.error("Couldn't rebuild the workspace.");
+        }
+    }, [recording.id, onGenerated]);
+
+    const closeWorkspace = useCallback(() => {
+        setWorkspaceOpen(false);
+        // Don't wait out the debounce when the user closes the modal.
+        void flushWorkspace().then(() => onGenerated?.());
+    }, [flushWorkspace, onGenerated]);
+
+    // ── Speaker renaming ─────────────────────────────────────────
+    // Local copy of the names map so a rename shows instantly; the server
+    // value re-syncs whenever the parent refetches the transcription.
+    const [speakerNames, setSpeakerNames] = useState<Record<
+        string,
+        string
+    > | null>(transcription?.speakerNames ?? null);
+    // Compare against the RAW prop (which may be undefined on routes that
+    // don't thread speakerNames) — normalizing only the stored side would
+    // make `undefined !== null` true on every render and loop setState.
+    const speakerNamesServerRef = useRef(transcription?.speakerNames);
+    if (transcription?.speakerNames !== speakerNamesServerRef.current) {
+        speakerNamesServerRef.current = transcription?.speakerNames;
+        setSpeakerNames(transcription?.speakerNames ?? null);
+    }
+
+    const handleRenameSpeaker = useCallback(
+        async (speakerId: string, name: string) => {
+            const previous = speakerNames;
+            const next: Record<string, string> = { ...(previous ?? {}) };
+            if (name) {
+                next[speakerId] = name;
+            } else {
+                delete next[speakerId];
+            }
+            // Optimistic: apply immediately, revert on failure.
+            setSpeakerNames(Object.keys(next).length ? next : null);
+            try {
+                const res = await fetch(
+                    `/api/recordings/${recording.id}/speakers`,
+                    {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ speakerNames: next }),
+                    },
+                );
+                if (!res.ok) throw new Error("Failed");
+                onGenerated?.();
+            } catch {
+                setSpeakerNames(previous);
+                toast.error("Couldn't rename speaker — please try again.");
+            }
+        },
+        [speakerNames, recording.id, onGenerated],
+    );
 
     const startEditTranscript = useCallback(() => {
         setTranscriptEditValue(transcription?.text ?? "");
@@ -549,6 +717,10 @@ export function TranscriptionPanel({
                                             {isDiarized(transcription.text) ? (
                                                 <DiarizedTranscript
                                                     text={transcription.text}
+                                                    speakerNames={speakerNames}
+                                                    onRename={
+                                                        handleRenameSpeaker
+                                                    }
                                                 />
                                             ) : (
                                                 <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
@@ -773,7 +945,10 @@ export function TranscriptionPanel({
                                             <div className="group/summary relative">
                                                 <div className="rounded-lg bg-muted/60 border border-border/50 p-4 dark:bg-muted/30">
                                                     <p className="text-sm leading-relaxed text-foreground/90">
-                                                        {summaryData.summary}
+                                                        {resolveSpeakerTokens(
+                                                            summaryData.summary,
+                                                            speakerNames,
+                                                        )}
                                                     </p>
                                                 </div>
                                                 <button
@@ -802,7 +977,10 @@ export function TranscriptionPanel({
                                                                     className="flex items-start gap-2.5 text-sm text-foreground/80"
                                                                 >
                                                                     <span className="mt-2 size-1.5 rounded-full bg-primary shrink-0" />
-                                                                    {point}
+                                                                    {resolveSpeakerTokens(
+                                                                        point,
+                                                                        speakerNames,
+                                                                    )}
                                                                 </li>
                                                             ),
                                                         )}
@@ -825,7 +1003,10 @@ export function TranscriptionPanel({
                                                                     className="flex items-start gap-2.5 text-sm text-foreground/80"
                                                                 >
                                                                     <ListChecks className="size-3.5 mt-0.5 text-primary shrink-0" />
-                                                                    {item}
+                                                                    {resolveSpeakerTokens(
+                                                                        item,
+                                                                        speakerNames,
+                                                                    )}
                                                                 </li>
                                                             ),
                                                         )}
@@ -833,21 +1014,30 @@ export function TranscriptionPanel({
                                                 </div>
                                             )}
 
-                                        {/* Memory Map */}
+                                        {/* Editable workspace (map + document views) */}
                                         {summaryData.summary && (
-                                            <MemoryMap
-                                                title={
-                                                    recording.filename ??
-                                                    "Recording"
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setWorkspaceOpen(true)
                                                 }
-                                                summary={summaryData.summary}
-                                                keyPoints={
-                                                    summaryData.keyPoints
-                                                }
-                                                actionItems={
-                                                    summaryData.actionItems
-                                                }
-                                            />
+                                                className="group/ws flex w-full items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 dark:bg-muted/10"
+                                            >
+                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card">
+                                                    <Network className="size-4 text-muted-foreground transition-colors group-hover/ws:text-foreground" />
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block text-xs font-semibold">
+                                                        Open workspace
+                                                    </span>
+                                                    <span className="block truncate text-[11px] text-muted-foreground">
+                                                        Rearrange this summary
+                                                        as a mind map or
+                                                        document — changes save
+                                                        automatically
+                                                    </span>
+                                                </span>
+                                            </button>
                                         )}
 
                                         <div className="flex items-center justify-between pt-2 border-t border-border/50">
@@ -914,6 +1104,17 @@ export function TranscriptionPanel({
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {workspaceOpen && (
+                <WorkspaceModal
+                    initialNodes={workspaceNodes}
+                    speakerNames={speakerNames}
+                    onRenameSpeaker={handleRenameSpeaker}
+                    onNodesChange={handleWorkspaceChange}
+                    onRebuild={rebuildWorkspace}
+                    onClose={closeWorkspace}
+                />
             )}
         </div>
     );
